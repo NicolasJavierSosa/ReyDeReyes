@@ -313,15 +313,7 @@
         // --- CATEGORIAS (API) ---
         let categories = [];
 
-        // --- BASE DE DATOS SIMULADA ---
-        let dbProducts = [
-            { id: 1, barcode: '77912345', name: 'Coca Cola 2.25L', description: '', categoryId: null, categoryName: 'Bebidas', unit: 'L', type: 'Producto', cost: 1800, price: 2500, stock: 45, minStock: 10, active: true },
-            { id: 2, barcode: '77954321', name: 'Papas Lays Clasicas 145g', description: '', categoryId: null, categoryName: 'Snacks', unit: 'G', type: 'Producto', cost: 1200, price: 1800, stock: 12, minStock: 15, active: true },
-            { id: 3, barcode: '77900011', name: 'Alfajor Jorgito Chocolate', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'UN', type: 'Producto', cost: 350, price: 600, stock: 120, minStock: 20, active: true },
-            { id: 4, barcode: '77999999', name: 'Cigarrillos Marlboro Box 20', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'UN', type: 'Producto', cost: 1950, price: 2200, stock: 0, minStock: 10, active: false },
-            { id: 5, barcode: '123', name: 'Caramelos Surtidos (100g)', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'G', type: 'Producto', cost: 200, price: 400, stock: 500, minStock: 100, active: true },
-            { id: 6, barcode: '77944444', name: 'Yerba Playadito 500g', description: '', categoryId: null, categoryName: 'Almacen', unit: 'G', type: 'Producto', cost: 2100, price: 3000, stock: 8, minStock: 5, active: true }
-        ];
+        let dbProducts = [];
 
         let currentEditId = null;
         let offLookupTimer = null;
@@ -336,6 +328,7 @@
         const drawerTitle = document.getElementById('drawer-title');
         const form = document.getElementById('product-form');
         const btnToggleStatus = document.getElementById('btn-toggle-status');
+        const saveProductBtn = document.querySelector('button[form="product-form"]');
 
         // Inputs Filtros
         const searchInput = document.getElementById('search-input');
@@ -367,7 +360,7 @@
         const categoryCancelBtn = document.getElementById('btn-category-cancel');
 
         // Formateador
-        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
+        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount || 0);
 
         function categoryLabelById(id, fallback) {
             if (id == null) return fallback || '-';
@@ -381,13 +374,27 @@
             return found ? found.id : null;
         }
 
-        function normalizeProductCategories() {
-            dbProducts = dbProducts.map(p => {
-                if (p.categoryId) return p;
-                if (!p.categoryName) return p;
-                const resolved = resolveCategoryIdByName(p.categoryName);
-                return resolved ? { ...p, categoryId: resolved } : p;
-            });
+        function toNumber(value) {
+            const parsed = parseFloat(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function mapApiProduct(product) {
+            return {
+                id: product.id,
+                barcode: product.barcode || '',
+                name: product.name || '',
+                description: product.description || '',
+                categoryId: product.categoryId ?? null,
+                categoryName: product.categoryName || '',
+                unit: product.unit || '',
+                type: product.type || '',
+                cost: toNumber(product.cost),
+                price: toNumber(product.price),
+                stock: toNumber(product.stock),
+                minStock: toNumber(product.minStock),
+                active: !!product.active
+            };
         }
 
         function renderCategoryOptions() {
@@ -429,10 +436,20 @@
                 if (!response.ok) throw new Error('error');
                 categories = await response.json();
                 renderCategoryOptions();
-                normalizeProductCategories();
-                renderTable();
             } catch (error) {
                 console.error('No se pudieron cargar categorias', error);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/productos');
+                if (!response.ok) throw new Error('error');
+                const data = await response.json();
+                dbProducts = Array.isArray(data) ? data.map(mapApiProduct) : [];
+            } catch (error) {
+                console.error('No se pudieron cargar productos', error);
+                dbProducts = [];
             }
         }
 
@@ -757,18 +774,9 @@
                     return;
                 }
 
-                const saved = await response.json();
-
-                if (editingCategoryId) {
-                    categories = categories.map(c => c.id === saved.id ? saved : c);
-                    dbProducts = dbProducts.map(p => p.categoryId === saved.id ? { ...p, categoryId: saved.id } : p);
-                    setCategoryStatus('Categoria actualizada.', 'success');
-                } else {
-                    categories.push(saved);
-                    setCategoryStatus('Categoria creada.', 'success');
-                }
-
-                renderCategoryOptions();
+                setCategoryStatus(editingCategoryId ? 'Categoria actualizada.' : 'Categoria creada.', 'success');
+                await loadCategories();
+                await loadProducts();
                 renderCategoryList();
                 renderTable();
                 resetCategoryForm();
@@ -793,10 +801,8 @@
                     return;
                 }
 
-                categories = categories.filter(c => c.id !== id);
-                dbProducts = dbProducts.map(p => p.categoryId === id ? { ...p, categoryId: null } : p);
-
-                renderCategoryOptions();
+                await loadCategories();
+                await loadProducts();
                 renderCategoryList();
                 renderTable();
                 resetCategoryForm();
@@ -805,58 +811,79 @@
             }
         }
 
-        // --- GUARDAR / MODIFICAR ---
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const pData = {
+        function buildProductPayload() {
+            return {
                 barcode: barcodeInput.value.trim(),
                 name: nameInput.value.trim(),
                 description: descriptionInput.value.trim(),
                 categoryId: categorySelect.value ? parseInt(categorySelect.value, 10) : null,
-                categoryName: '',
                 unit: unitSelect.value,
                 type: typeSelect.value,
-                cost: parseFloat(costInput.value) || 0,
-                price: parseFloat(priceInput.value),
-                stock: parseFloat(stockInput.value),
-                minStock: parseFloat(minStockInput.value) || 0,
+                cost: toNumber(costInput.value),
+                price: toNumber(priceInput.value),
+                stock: toNumber(stockInput.value),
+                minStock: toNumber(minStockInput.value),
                 active: !!activeCheckbox.checked
             };
+        }
 
-            if (currentEditId) {
-                const index = dbProducts.findIndex(p => p.id === currentEditId);
-                if (index !== -1) {
-                    dbProducts[index] = { ...dbProducts[index], ...pData };
-                }
-            } else {
-                const newId = Math.max(...dbProducts.map(p => p.id), 0) + 1;
-                dbProducts.push({
-                    id: newId,
-                    ...pData
+        async function saveProduct() {
+            const payload = buildProductPayload();
+            saveProductBtn.disabled = true;
+
+            try {
+                const response = await fetch(currentEditId ? `/api/productos/${currentEditId}` : '/api/productos', {
+                    method: currentEditId ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-            }
 
-            closeDrawer();
-            renderTable();
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(message || 'No se pudo guardar el producto.');
+                }
+
+                await loadProducts();
+                renderTable();
+                closeDrawer();
+            } catch (error) {
+                alert(error.message || 'Error al guardar el producto.');
+            } finally {
+                saveProductBtn.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveProduct();
         });
 
-        // --- DAR DE BAJA / ALTA ---
-        function toggleStatusFromForm() {
+        async function toggleStatusFromForm() {
             if (!currentEditId) return;
 
-            const index = dbProducts.findIndex(p => p.id === currentEditId);
-            if (index !== -1) {
-                const isActive = dbProducts[index].active;
-                const confirmMsg = isActive
-                    ? `Estas seguro de dar de baja el producto "${dbProducts[index].name}"? No aparecera en ventas.`
-                    : `Reactivar el producto "${dbProducts[index].name}"?`;
+            const product = dbProducts.find(p => p.id === currentEditId);
+            if (!product) return;
 
-                if (confirm(confirmMsg)) {
-                    dbProducts[index].active = !isActive;
-                    closeDrawer();
-                    renderTable();
-                }
+            const isActive = product.active;
+            const confirmMsg = isActive
+                ? `Estas seguro de dar de baja el producto "${product.name}"? No aparecera en ventas.`
+                : `Reactivar el producto "${product.name}"?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(`/api/productos/${currentEditId}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: !isActive })
+                });
+                if (!response.ok) throw new Error('No se pudo actualizar estado.');
+
+                await loadProducts();
+                renderTable();
+                closeDrawer();
+            } catch (error) {
+                alert('Error al cambiar estado del producto.');
             }
         }
 
@@ -903,10 +930,12 @@
         });
 
         // Inicializar
-        window.onload = () => {
+        window.onload = async () => {
             renderCategoryOptions();
             renderTable();
-            loadCategories();
+            await loadCategories();
+            await loadProducts();
+            renderTable();
         };
 
     </script>

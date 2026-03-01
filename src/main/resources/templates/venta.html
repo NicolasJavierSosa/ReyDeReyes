@@ -217,26 +217,30 @@
 
     <!-- Script de Lógica del POS -->
     <script>
-        // --- BASE DE DATOS SIMULADA ---
-        const mockProducts = {
-            '77912345': { id: 1, name: 'Coca Cola 2.25L', price: 2500.00 },
-            '77954321': { id: 2, name: 'Papas Lays Clásicas 145g', price: 1800.00 },
-            '77900011': { id: 3, name: 'Alfajor Jorgito Chocolate', price: 600.00 },
-            '77999999': { id: 4, name: 'Cigarrillos Marlboro Box 20', price: 2200.00 },
-            '123':      { id: 5, name: 'Caramelos Surtidos (100g)', price: 400.00 }
-        };
-
-        // --- ESTADO DEL CARRITO ---
         let cart = [];
-        let globalDiscount = 0; // Podrías agregar lógica para modificar esto luego
+        let globalDiscount = 0;
+        let currentSearchResults = [];
+        let searchTimer = null;
 
-        // --- ELEMENTOS DEL DOM ---
         const form = document.getElementById('product-form');
         const inputCodigo = document.getElementById('codigo');
         const inputCantidad = document.getElementById('cantidad');
+        const inputBuscar = document.getElementById('buscar');
+        const categoriaSelect = document.getElementById('categoria');
         const cartBody = document.getElementById('cart-body');
-        
-        // Displays
+
+        const searchButton = inputBuscar.parentElement.querySelector('button[type="button"]');
+        const searchContainer = inputBuscar.parentElement.parentElement;
+        const searchDropdown = document.createElement('div');
+        searchDropdown.id = 'search-dropdown';
+        searchDropdown.className = 'hidden absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 max-h-64 overflow-y-auto';
+        const searchResultsList = document.createElement('ul');
+        searchResultsList.id = 'search-results';
+        searchResultsList.className = 'divide-y divide-slate-100';
+        searchDropdown.appendChild(searchResultsList);
+        searchContainer.classList.add('relative');
+        searchContainer.appendChild(searchDropdown);
+
         const lastItemName = document.getElementById('last-item-name');
         const lastItemPrice = document.getElementById('last-item-price');
         const elSubtotal = document.getElementById('summary-subtotal');
@@ -244,62 +248,194 @@
         const elTotal = document.getElementById('summary-total');
         const elItems = document.getElementById('summary-items');
 
-        // Formateador de Moneda (Pesos / Dólares según config)
-        const formatMoney = (amount) => {
-            return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
-        };
+        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount || 0);
 
-        // --- FUNCIONES PRINCIPALES ---
+        function selectedQty() {
+            const qty = parseInt(inputCantidad.value, 10);
+            return Number.isFinite(qty) && qty > 0 ? qty : 1;
+        }
 
-        // Manejar el submit del formulario (cuando se escanea o se da Enter)
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const code = inputCodigo.value.trim();
-            const qty = parseInt(inputCantidad.value) || 1;
+        function selectedCategoryId() {
+            const value = categoriaSelect.value.trim();
+            if (!value) return null;
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
 
-            if (!code) return;
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categorias');
+                if (!response.ok) throw new Error('No se pudieron cargar categorias');
+                const categories = await response.json();
 
-            const product = mockProducts[code];
-
-            if (product) {
-                addProductToCart(code, product, qty);
-                
-                // Actualizar display de último artículo
-                lastItemName.textContent = product.name;
-                lastItemPrice.textContent = formatMoney(product.price);
-                
-                // Limpiar inputs
-                inputCodigo.value = '';
-                inputCantidad.value = '1';
-                inputCodigo.focus();
-            } else {
-                alert('Producto no encontrado. Intente con "123" o "77912345"');
-                inputCodigo.select();
+                categoriaSelect.innerHTML = '<option value="">Todas las categorias</option>';
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = String(cat.id);
+                    option.textContent = cat.nombre;
+                    categoriaSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error(error);
             }
-        });
+        }
 
-        function addProductToCart(code, product, qty) {
-            // Verificar si ya existe en el carrito para sumar cantidad
+        async function findProductByCode(code) {
+            const response = await fetch(`/api/productos/venta/codigo/${encodeURIComponent(code)}`);
+            if (response.status === 404) return null;
+            if (!response.ok) throw new Error('No se pudo consultar el producto');
+            return response.json();
+        }
+
+        async function searchProductsByName() {
+            const query = inputBuscar.value.trim();
+            if (query.length < 2) {
+                renderSearchResults([]);
+                return;
+            }
+
+            const params = new URLSearchParams({ q: query });
+            const categoryId = selectedCategoryId();
+            if (categoryId !== null) params.append('categoriaId', String(categoryId));
+
+            const response = await fetch(`/api/productos/venta/buscar?${params.toString()}`);
+            if (!response.ok) throw new Error('No se pudo buscar productos');
+            const data = await response.json();
+            renderSearchResults(Array.isArray(data) ? data : []);
+        }
+
+        function renderSearchResults(products) {
+            currentSearchResults = products;
+            searchResultsList.innerHTML = '';
+
+            if (!products.length) {
+                searchDropdown.classList.add('hidden');
+                return;
+            }
+
+            products.forEach(product => {
+                const item = document.createElement('li');
+                item.className = 'px-3 py-2 hover:bg-slate-50 cursor-pointer';
+                item.innerHTML = `
+                    <div class="text-sm font-medium text-slate-800">${product.name}</div>
+                    <div class="text-xs text-slate-500 flex justify-between">
+                        <span>${product.barcode || '-'}</span>
+                        <span>${formatMoney(product.price)}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => addFromSearch(product));
+                searchResultsList.appendChild(item);
+            });
+
+            searchDropdown.classList.remove('hidden');
+        }
+
+        function hideSearchResults() {
+            searchDropdown.classList.add('hidden');
+        }
+
+        function addProductToCart(code, name, price, qty) {
             const existingItemIndex = cart.findIndex(item => item.code === code);
-            
+
             if (existingItemIndex !== -1) {
                 cart[existingItemIndex].qty += qty;
                 cart[existingItemIndex].subtotal = cart[existingItemIndex].qty * cart[existingItemIndex].price;
             } else {
-                cart.unshift({ // unshift para agregar arriba (opcional, push para abajo)
-                    code: code,
-                    name: product.name,
-                    price: product.price,
-                    qty: qty,
-                    subtotal: product.price * qty
+                cart.unshift({
+                    code,
+                    name,
+                    price: Number(price) || 0,
+                    qty,
+                    subtotal: (Number(price) || 0) * qty
                 });
             }
+
+            lastItemName.textContent = name;
+            lastItemPrice.textContent = formatMoney(price);
             updateUI();
         }
 
+        async function addByBarcode() {
+            const code = inputCodigo.value.trim();
+            const qty = selectedQty();
+            if (!code) return;
+
+            const product = await findProductByCode(code);
+            if (!product) {
+                alert('Producto no encontrado o inactivo.');
+                inputCodigo.select();
+                return;
+            }
+
+            addProductToCart(product.barcode || code, product.name, product.price, qty);
+            inputCodigo.value = '';
+            inputCantidad.value = '1';
+            inputCodigo.focus();
+        }
+
+        function addFromSearch(product) {
+            addProductToCart(product.barcode || String(product.id), product.name, product.price, selectedQty());
+            inputBuscar.value = '';
+            renderSearchResults([]);
+            inputCodigo.focus();
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await addByBarcode();
+            } catch (error) {
+                alert('Error al buscar el producto.');
+            }
+        });
+
+        inputBuscar.addEventListener('input', () => {
+            if (searchTimer) clearTimeout(searchTimer);
+            searchTimer = setTimeout(async () => {
+                try {
+                    await searchProductsByName();
+                } catch (error) {
+                    renderSearchResults([]);
+                }
+            }, 250);
+        });
+
+        inputBuscar.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            if (currentSearchResults.length > 0) {
+                addFromSearch(currentSearchResults[0]);
+            }
+        });
+
+        if (searchButton) {
+            searchButton.addEventListener('click', async () => {
+                try {
+                    await searchProductsByName();
+                } catch (error) {
+                    renderSearchResults([]);
+                }
+            });
+        }
+
+        categoriaSelect.addEventListener('change', async () => {
+            if (!inputBuscar.value.trim()) return;
+            try {
+                await searchProductsByName();
+            } catch (error) {
+                renderSearchResults([]);
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!searchContainer.contains(event.target)) {
+                hideSearchResults();
+            }
+        });
+
         function removeProduct(index) {
             cart.splice(index, 1);
-            if(cart.length === 0) {
+            if (cart.length === 0) {
                 lastItemName.textContent = '---';
                 lastItemPrice.textContent = '$0.00';
             }
@@ -308,7 +444,7 @@
         }
 
         function clearCart() {
-            if(cart.length > 0 && confirm('¿Estás seguro de cancelar la venta actual?')) {
+            if (cart.length > 0 && confirm('Estas seguro de cancelar la venta actual?')) {
                 cart = [];
                 lastItemName.textContent = '---';
                 lastItemPrice.textContent = '$0.00';
@@ -318,7 +454,6 @@
         }
 
         function updateUI() {
-            // Renderizar Tabla
             cartBody.innerHTML = '';
             let subtotalAcc = 0;
             let totalItems = 0;
@@ -344,34 +479,29 @@
                 cartBody.appendChild(tr);
             });
 
-            // Actualizar Totales
             const total = subtotalAcc - globalDiscount;
-            
             elSubtotal.textContent = formatMoney(subtotalAcc);
             elDiscount.textContent = formatMoney(globalDiscount);
             elTotal.textContent = formatMoney(total);
             elItems.textContent = totalItems;
         }
 
-        // --- ATAJOS DE TECLADO ---
         document.addEventListener('keydown', (e) => {
-            // F12 para cobrar
             if (e.key === 'F12') {
                 e.preventDefault();
-                if(cart.length > 0) {
+                if (cart.length > 0) {
                     alert('Abriendo modal de cobro por ' + elTotal.textContent);
-                    // Aquí iría la lógica para abrir el modal de pago
                 }
             }
-            // Enfocar código de barras si se presiona una letra/número y no estamos en un input
             if (e.key.length === 1 && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
                 inputCodigo.focus();
             }
         });
 
-        // Inicializar foco
-        window.onload = () => inputCodigo.focus();
-
+        window.onload = async () => {
+            await loadCategories();
+            inputCodigo.focus();
+        };
     </script>
 </body>
 </html>
