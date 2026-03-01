@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco POS - Compras y Proveedores</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Animaciones para el panel lateral */
+        .drawer-open { transform: translateX(0); }
+        .drawer-closed { transform: translateX(100%); }
+
+        /* Custom Checkbox */
+        .custom-checkbox:checked {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800 relative">
+
+    <!-- Navegación Superior -->
+    <header class="bg-slate-900 text-white shadow-md z-10 relative">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+            </div>
+                        <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
+                </a>
+                <a href="/compra" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
+                    <i class="fa-solid fa-box-open mr-2"></i>Compra
+                </a>
+                <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
+                </a>
+                <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
+                </a>
+                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-users mr-2"></i>Clientes
+                </a>
+                <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Área Principal -->
+    <main class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+        
+        <!-- Tarjetas de Resumen (KPIs) -->
+        <div class="grid grid-cols-3 gap-4">
+            <!-- Proveedores -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-truck-field"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Proveedores Activos</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-suppliers">0</p>
+                </div>
+            </div>
+
+            <!-- Productos en Falta -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Productos Críticos</p>
+                    <p class="text-2xl font-bold text-rose-600" id="kpi-critical">0</p>
+                </div>
+            </div>
+
+            <!-- Pedidos Generados -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-file-invoice"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pedidos (Este Mes)</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-orders">12</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Herramientas -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+            
+            <!-- Buscador -->
+            <div class="w-96">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscar Proveedor</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                    </div>
+                    <input type="text" id="search-input" placeholder="Nombre de empresa, contacto..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div>
+                <button class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                    <i class="fa-solid fa-plus mr-2"></i> Nuevo Proveedor
+                </button>
+            </div>
+        </div>
+
+        <!-- Grilla de Proveedores -->
+        <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative">
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">CUIT</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Empresa / Distribuidor</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Contacto</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Teléfono (WhatsApp)</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Alertas de Stock</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-32">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="suppliers-body" class="divide-y divide-slate-100">
+                        <!-- Proveedores generados por JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex justify-between items-center text-sm text-slate-600">
+                <span id="suppliers-count">Mostrando 0 proveedores</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY OSCURO -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+
+    <!-- PANEL LATERAL (SLIDE-OVER) PARA PRODUCTOS Y PEDIDO -->
+    <div id="order-drawer" class="fixed inset-y-0 right-0 w-[600px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
+        
+        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div>
+                <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-clipboard-list mr-2 text-emerald-500"></i> Generar Pedido
+                </h2>
+                <p id="drawer-supplier-name" class="text-sm font-medium text-slate-500 mt-1">Proveedor: ---</p>
+            </div>
+            <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Lista de Productos del Proveedor -->
+        <div class="p-0 flex-1 overflow-y-auto bg-slate-50/50">
+            
+            <div class="px-6 py-3 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+                <div class="flex items-center text-rose-700 text-sm font-medium">
+                    <i class="fa-solid fa-circle-exclamation mr-2"></i>
+                    <span>Productos marcados en rojo están por debajo del stock mínimo.</span>
+                </div>
+            </div>
+
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-white sticky top-0 shadow-sm z-10">
+                    <tr>
+                        <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-12 text-center">
+                            <i class="fa-solid fa-check-double text-slate-400" title="Seleccionar"></i>
+                        </th>
+                        <th class="py-3 px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Producto</th>
+                        <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-24">Stock</th>
+                        <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-32">Cant. a Pedir</th>
+                    </tr>
+                </thead>
+                <tbody id="drawer-products-body" class="divide-y divide-slate-100 bg-white">
+                    <!-- Productos del proveedor cargados por JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Botones de Acción Panel -->
+        <div class="px-6 py-4 border-t border-slate-200 bg-white flex justify-between items-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div class="text-sm text-slate-600 font-medium">
+                Seleccionados: <span id="selected-count" class="text-emerald-600 font-bold">0</span> productos
+            </div>
+            <div class="flex gap-3">
+                <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Cerrar
+                </button>
+                <button type="button" onclick="generateOrderMessage()" class="px-5 py-2.5 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all font-medium flex items-center">
+                    <i class="fa-brands fa-whatsapp mr-2 text-lg"></i> Armar Mensaje
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CUSTOM PARA MOSTRAR MENSAJE (En vez de Alert) -->
+    <div id="message-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] hidden flex items-center justify-center opacity-0 transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl w-[500px] flex flex-col overflow-hidden transform scale-95 transition-transform" id="message-modal-content">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-bold flex items-center"><i class="fa-solid fa-comment-dots mr-2 text-emerald-400"></i> Mensaje Generado</h3>
+                <button onclick="closeMessageModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-slate-500 mb-3">Revisa el mensaje antes de enviarlo a tu proveedor:</p>
+                <textarea id="generated-message" rows="8" class="w-full p-4 bg-slate-50 border border-slate-300 rounded-lg outline-none text-slate-700 font-medium resize-none focus:ring-2 focus:ring-emerald-500" readonly></textarea>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button onclick="closeMessageModal()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button onclick="copyAndClose()" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg shadow-md transition-all flex items-center">
+                    <i class="fa-regular fa-copy mr-2"></i> Copiar Mensaje
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Lógica -->
+    <script>
+        // --- BASE DE DATOS SIMULADA ---
+        const dbSuppliers = [
+            { id: 1, cuit: '30-11111111-8', name: 'Distribuidora Femsa', contact: 'Roberto Gómez', phone: '3764112233' },
+            { id: 2, cuit: '30-22222222-8', name: 'Arcor S.A. Mayorista', contact: 'María Pérez', phone: '3764998877' },
+            { id: 3, cuit: '30-33333333-8', name: 'Massalin Particulares', contact: 'Carlos López', phone: '3764554433' }
+        ];
+
+        // Productos vinculados a un proveedor (supplierId)
+        const dbProducts = [
+            { id: 101, supplierId: 1, name: 'Coca Cola 2.25L Retornable', stock: 4, minStock: 10, cost: 1800 }, // Crítico
+            { id: 102, supplierId: 1, name: 'Sprite 2L', stock: 15, minStock: 10, cost: 1700 },
+            { id: 103, supplierId: 1, name: 'Fanta 2L', stock: 2, minStock: 8, cost: 1700 }, // Crítico
+            
+            { id: 201, supplierId: 2, name: 'Papas Lays Clásicas 145g', stock: 3, minStock: 15, cost: 1200 }, // Crítico
+            { id: 202, supplierId: 2, name: 'Alfajor Jorgito Chocolate', stock: 45, minStock: 20, cost: 350 },
+            { id: 203, supplierId: 2, name: 'Gomitas Mogul', stock: 12, minStock: 10, cost: 400 },
+            
+            { id: 301, supplierId: 3, name: 'Marlboro Box 20', stock: 0, minStock: 20, cost: 1950 }, // Crítico
+            { id: 302, supplierId: 3, name: 'Philip Morris Box 20', stock: 5, minStock: 15, cost: 1800 } // Crítico
+        ];
+
+        // Variables de estado
+        let currentSupplier = null;
+
+        // Elementos DOM
+        const suppliersBody = document.getElementById('suppliers-body');
+        const searchInput = document.getElementById('search-input');
+        const drawer = document.getElementById('order-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const drawerProductsBody = document.getElementById('drawer-products-body');
+        const drawerSupplierName = document.getElementById('drawer-supplier-name');
+        
+        // Modal
+        const msgModal = document.getElementById('message-modal');
+        const msgContent = document.getElementById('message-modal-content');
+
+        // --- INICIALIZACIÓN Y KPIs ---
+        function init() {
+            renderSuppliers();
+            
+            // Calcular productos críticos globales
+            const criticalCount = dbProducts.filter(p => p.stock <= p.minStock).length;
+            document.getElementById('kpi-suppliers').textContent = dbSuppliers.length;
+            document.getElementById('kpi-critical').textContent = criticalCount;
+        }
+
+        // --- RENDERIZAR TABLA PROVEEDORES ---
+        function renderSuppliers() {
+            const search = searchInput.value.toLowerCase();
+
+            // Filtrar
+            const filtered = dbSuppliers.filter(s => {
+                return s.name.toLowerCase().includes(search) || s.contact.toLowerCase().includes(search);
+            });
+
+            suppliersBody.innerHTML = '';
+
+            filtered.forEach(supplier => {
+                // Contar críticos para este proveedor
+                const supplierProducts = dbProducts.filter(p => p.supplierId === supplier.id);
+                const criticalCount = supplierProducts.filter(p => p.stock <= p.minStock).length;
+                
+                let stockAlertHtml = '<span class="text-slate-400 text-sm"><i class="fa-solid fa-check text-emerald-500 mr-1"></i> Stock OK</span>';
+                if (criticalCount > 0) {
+                    stockAlertHtml = `<span class="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-xs font-bold border border-rose-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ${criticalCount} faltantes</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors cursor-pointer group';
+                tr.onclick = () => openDrawer(supplier);
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">${supplier.cuit}</td>
+                    <td class="py-4 px-6 text-sm text-slate-900 border-b border-slate-100 font-bold">${supplier.name}</td>
+                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-user mr-2 text-slate-400"></i>${supplier.contact}</td>
+                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-brands fa-whatsapp mr-2 text-emerald-500"></i>${supplier.phone}</td>
+                    <td class="py-4 px-6 text-center border-b border-slate-100">${stockAlertHtml}</td>
+                    <td class="py-4 px-6 text-center border-b border-slate-100">
+                        <button class="bg-slate-100 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded text-xs font-semibold transition-all">
+                            Ver Productos
+                        </button>
+                    </td>
+                `;
+                suppliersBody.appendChild(tr);
+            });
+
+            document.getElementById('suppliers-count').textContent = `Mostrando ${filtered.length} proveedores`;
+        }
+
+        // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
+        function openDrawer(supplier) {
+            currentSupplier = supplier;
+            drawerSupplierName.textContent = `Proveedor: ${supplier.name} (${supplier.contact})`;
+
+            const products = dbProducts.filter(p => p.supplierId === supplier.id);
+            drawerProductsBody.innerHTML = '';
+            
+            let selectedCountInit = 0;
+
+            products.forEach(p => {
+                const isCritical = p.stock <= p.minStock;
+                const rowClass = isCritical ? 'bg-rose-50/30' : '';
+                const stockColor = isCritical ? 'text-rose-600 font-bold' : 'text-slate-700';
+                
+                // Sugerencia de pedido: Reponer hasta el doble del mínimo (lógica de ejemplo)
+                const suggestedQty = isCritical ? (p.minStock * 2) - p.stock : 0;
+                
+                if(isCritical) selectedCountInit++;
+
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-slate-100 ${rowClass}`;
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-center">
+                        <input type="checkbox" class="w-4 h-4 rounded border-slate-300 custom-checkbox cursor-pointer product-checkbox" ${isCritical ? 'checked' : ''} onchange="updateSelectedCount()" data-name="${p.name}">
+                    </td>
+                    <td class="py-3 px-2 text-sm font-semibold text-slate-800">${p.name}</td>
+                    <td class="py-3 px-4 text-sm text-center ${stockColor}">
+                        ${p.stock} <span class="text-xs text-slate-400 font-normal ml-1">(Mín: ${p.minStock})</span>
+                    </td>
+                    <td class="py-3 px-6 text-center">
+                        <input type="number" min="1" value="${suggestedQty > 0 ? suggestedQty : 1}" class="w-20 px-2 py-1 border border-slate-300 rounded text-center focus:ring-2 focus:ring-emerald-500 outline-none order-qty-input ${!isCritical ? 'opacity-50' : ''}">
+                    </td>
+                `;
+                
+                // Lógica visual para atenuar input si no está checkeado
+                const checkbox = tr.querySelector('.product-checkbox');
+                const input = tr.querySelector('.order-qty-input');
+                checkbox.addEventListener('change', (e) => {
+                    if(e.target.checked) input.classList.remove('opacity-50');
+                    else input.classList.add('opacity-50');
+                });
+
+                drawerProductsBody.appendChild(tr);
+            });
+
+            document.getElementById('selected-count').textContent = selectedCountInit;
+
+            // Animar entrada
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            drawer.classList.remove('drawer-closed');
+            drawer.classList.add('drawer-open');
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+            currentSupplier = null;
+        }
+
+        function updateSelectedCount() {
+            const checked = document.querySelectorAll('.product-checkbox:checked').length;
+            document.getElementById('selected-count').textContent = checked;
+        }
+
+        // --- GENERADOR DE MENSAJE Y MODAL ---
+        function generateOrderMessage() {
+            if(!currentSupplier) return;
+
+            const rows = drawerProductsBody.querySelectorAll('tr');
+            let orderItems = [];
+
+            rows.forEach(row => {
+                const checkbox = row.querySelector('.product-checkbox');
+                if (checkbox.checked) {
+                    const name = checkbox.getAttribute('data-name');
+                    const qty = row.querySelector('.order-qty-input').value;
+                    orderItems.push(`- ${qty}x ${name}`);
+                }
+            });
+
+            if(orderItems.length === 0) {
+                // Usamos un modal o alert rápido si no seleccionó nada
+                alert("Por favor, selecciona al menos un producto para generar el pedido.");
+                return;
+            }
+
+            const today = new Date().toLocaleDateString('es-AR');
+            const message = `Hola ${currentSupplier.contact},\nTe escribo desde MiKiosco para hacerte un pedido (Fecha: ${today}).\n\nPor favor, enviame lo siguiente:\n${orderItems.join('\n')}\n\nQuedo a la espera de confirmación y total. ¡Gracias!`;
+
+            // Mostrar el Modal
+            document.getElementById('generated-message').value = message;
+            
+            msgModal.classList.remove('hidden');
+            // Pequeño delay para la animación
+            setTimeout(() => {
+                msgModal.classList.remove('opacity-0');
+                msgContent.classList.remove('scale-95');
+                msgContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeMessageModal() {
+            msgModal.classList.add('opacity-0');
+            msgContent.classList.remove('scale-100');
+            msgContent.classList.add('scale-95');
+            setTimeout(() => {
+                msgModal.classList.add('hidden');
+            }, 300); // duracion de la transicion de tailwind
+        }
+
+        function copyAndClose() {
+            const textArea = document.getElementById('generated-message');
+            textArea.select();
+            document.execCommand('copy'); // Fallback robusto para iFrames en vez de navigator.clipboard
+            
+            // Efecto visual en el botón antes de cerrar
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check mr-2"></i> ¡Copiado!';
+            btn.classList.replace('bg-emerald-500', 'bg-slate-800');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.classList.replace('bg-slate-800', 'bg-emerald-500');
+                closeMessageModal();
+                closeDrawer(); // Cerramos el drawer para volver a la grilla limpia
+            }, 1000);
+        }
+
+        // --- EVENTOS BUSCADOR ---
+        searchInput.addEventListener('input', renderSuppliers);
+
+        // Iniciar
+        window.onload = init;
+
+    </script>
+</body>
+</html>

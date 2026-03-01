@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco POS - Tesorería</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Animaciones para el panel lateral */
+        .drawer-open { transform: translateX(0); }
+        .drawer-closed { transform: translateX(100%); }
+
+        /* Estilos para radio buttons personalizados tipo botón */
+        .radio-btn-group input:checked + div {
+            border-color: transparent;
+        }
+        .radio-btn-group input#type-income:checked + div {
+            background-color: #10b981; /* emerald-500 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+        }
+        .radio-btn-group input#type-expense:checked + div {
+            background-color: #f43f5e; /* rose-500 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800 relative">
+
+    <!-- Navegación Superior -->
+    <header class="bg-slate-900 text-white shadow-md z-10 relative">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+            </div>
+                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
+                </a>
+                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-box-open mr-2"></i>Compra
+                </a>
+                <a href="/tesoreria" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
+                    <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
+                </a>
+                <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
+                </a>
+                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-users mr-2"></i>Clientes
+                </a>
+                <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Área Principal de Tesorería -->
+    <main class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+        
+        <!-- Tarjetas de Resumen (KPIs) -->
+        <div class="grid grid-cols-4 gap-4">
+            <!-- Caja Inicial / Entradas -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Base / Entradas</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-incomes">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Ventas del Turno -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-cart-arrow-down"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ventas Sistema</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-sales">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Salidas / Gastos -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Egresos / Retiros</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-expenses">$0.00</p>
+                </div>
+            </div>
+
+            <!-- Total Esperado en Caja (Destacado) -->
+            <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800 flex items-center gap-4 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
+                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 flex items-center justify-center text-xl z-10">
+                    <i class="fa-solid fa-cash-register"></i>
+                </div>
+                <div class="z-10">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Efectivo en Caja</p>
+                    <p class="text-3xl font-bold text-emerald-400" id="kpi-total">$0.00</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Herramientas -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+            
+            <!-- Filtros -->
+            <div class="flex gap-4 items-end">
+                <div class="w-64">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Buscar concepto..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="w-48">
+                    <select id="filter-type" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600 font-medium">
+                        <option value="all">Todos los movimientos</option>
+                        <option value="ingreso">Solo Ingresos</option>
+                        <option value="egreso">Solo Egresos</option>
+                        <option value="venta">Solo Ventas</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex gap-3">
+                <button onclick="openDrawer('expense')" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
+                    <i class="fa-solid fa-arrow-down mr-2"></i> Retiro / Gasto
+                </button>
+                <button onclick="openDrawer('income')" class="bg-white border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
+                    <i class="fa-solid fa-arrow-up mr-2"></i> Ingreso Manual
+                </button>
+                <div class="w-px bg-slate-200 mx-1"></div>
+                <button class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                    <i class="fa-solid fa-lock mr-2"></i> Cerrar Turno
+                </button>
+            </div>
+        </div>
+
+        <!-- Grilla de Movimientos -->
+        <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative">
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-24">Hora</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">Tipo</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Concepto / Categoría</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Usuario</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Monto</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-16">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="treasury-body" class="divide-y divide-slate-100">
+                        <!-- Movimientos generados por JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación Footer -->
+            <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex justify-between items-center text-sm text-slate-600">
+                <span id="movement-count">Mostrando 0 movimientos</span>
+                <span class="font-medium">Total mostrado: <span id="filtered-total" class="font-bold text-slate-900">$0.00</span></span>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY OSCURO PARA EL PANEL LATERAL -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+
+    <!-- PANEL LATERAL (SLIDE-OVER) PARA NUEVO MOVIMIENTO -->
+    <div id="movement-drawer" class="fixed inset-y-0 right-0 w-[420px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
+        
+        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-file-invoice-dollar mr-2 text-slate-500"></i>Registrar Movimiento</h2>
+            <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto">
+            <form id="movement-form" class="flex flex-col gap-6">
+                
+                <!-- Selector Tipo (Ingreso/Egreso) -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Movimiento *</label>
+                    <div class="grid grid-cols-2 gap-3 radio-btn-group">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mov_type" id="type-income" value="ingreso" class="peer sr-only" required>
+                            <div class="text-center py-2.5 px-4 border border-slate-300 rounded-lg text-slate-600 font-medium transition-all hover:bg-slate-50">
+                                <i class="fa-solid fa-arrow-up mr-1"></i> Ingreso
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="mov_type" id="type-expense" value="egreso" class="peer sr-only">
+                            <div class="text-center py-2.5 px-4 border border-slate-300 rounded-lg text-slate-600 font-medium transition-all hover:bg-slate-50">
+                                <i class="fa-solid fa-arrow-down mr-1"></i> Egreso
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Monto -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Monto *</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-2.5 text-slate-500 font-bold">$</span>
+                        <input type="number" id="form-amount" step="0.01" min="0.01" required class="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-lg font-semibold text-slate-800" placeholder="0.00">
+                    </div>
+                </div>
+
+                <!-- Categoría Concepto -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría / Razón *</label>
+                    <select id="form-category" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                        <!-- Se llena dinámicamente según el tipo -->
+                        <option value="" disabled selected>Seleccione tipo de movimiento primero</option>
+                    </select>
+                </div>
+
+                <!-- Detalle -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Detalle / Referencia (Opcional)</label>
+                    <input type="text" id="form-detail" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Pago a distribuidor de bebidas">
+                </div>
+
+                <!-- Comprobante -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nº Comprobante / Recibo</label>
+                    <input type="text" id="form-receipt" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all uppercase" placeholder="Ej: 0001-000451">
+                </div>
+            </form>
+        </div>
+
+        <!-- Botones de Acción Formulario -->
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+            <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                Cancelar
+            </button>
+            <button type="submit" form="movement-form" class="px-5 py-2.5 text-white bg-slate-800 rounded-lg hover:bg-slate-900 shadow-md transition-all font-medium flex items-center">
+                <i class="fa-solid fa-check mr-2"></i> Confirmar
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Lógica -->
+    <script>
+        // --- CATEGORÍAS POR TIPO ---
+        const categories = {
+            ingreso: [
+                { id: 'cambio_inicial', name: 'Cambio Inicial / Base' },
+                { id: 'ingreso_dueño', name: 'Aporte Dueño' },
+                { id: 'cobro_cta_cte', name: 'Cobro de Fila / Cta. Cte.' },
+                { id: 'otros_ingresos', name: 'Otros Ingresos' }
+            ],
+            egreso: [
+                { id: 'pago_proveedor', name: 'Pago a Proveedor' },
+                { id: 'retiro_dueño', name: 'Retiro Dueño / Socios' },
+                { id: 'gastos_limpieza', name: 'Insumos Limpieza/Librería' },
+                { id: 'pago_servicios', name: 'Pago Servicios (Luz, Internet)' },
+                { id: 'otros_gastos', name: 'Otros Gastos (Varios)' }
+            ]
+        };
+
+        // --- BASE DE DATOS SIMULADA (MOVIMIENTOS DEL TURNO) ---
+        let dbMovements = [
+            { id: 1, time: '08:00', type: 'ingreso', category: 'cambio_inicial', detail: 'Efectivo base para cambio', user: 'Admin', amount: 15000.00 },
+            { id: 2, time: '08:15', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0001', user: 'Admin', amount: 4500.00 },
+            { id: 3, time: '09:30', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0002', user: 'Admin', amount: 1200.00 },
+            { id: 4, time: '10:00', type: 'egreso', category: 'pago_proveedor', detail: 'Coca Cola Femsa. Remito #124', user: 'Admin', amount: -8500.00 },
+            { id: 5, time: '10:45', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0003', user: 'Admin', amount: 3200.00 },
+            { id: 6, time: '11:15', type: 'egreso', category: 'retiro_dueño', detail: 'Retiro parcial de caja', user: 'Admin', amount: -5000.00 }
+        ];
+
+        // Elementos DOM
+        const tableBody = document.getElementById('treasury-body');
+        const searchInput = document.getElementById('search-input');
+        const filterType = document.getElementById('filter-type');
+        
+        const kpiIncomes = document.getElementById('kpi-incomes');
+        const kpiSales = document.getElementById('kpi-sales');
+        const kpiExpenses = document.getElementById('kpi-expenses');
+        const kpiTotal = document.getElementById('kpi-total');
+
+        const drawer = document.getElementById('movement-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const form = document.getElementById('movement-form');
+        const categorySelect = document.getElementById('form-category');
+
+        // Formateadores
+        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
+        const getCategoryName = (type, catId) => {
+            if(type === 'venta') return 'Venta (Sistema)';
+            const list = categories[type] || [];
+            const cat = list.find(c => c.id === catId);
+            return cat ? cat.name : catId;
+        };
+
+        // --- ACTUALIZAR KPIS ---
+        function updateKPIs() {
+            let totalIncomes = 0; // Manuales
+            let totalSales = 0; // Ventas automáticas
+            let totalExpenses = 0; // Retiros
+
+            dbMovements.forEach(m => {
+                if(m.type === 'ingreso') totalIncomes += m.amount;
+                else if(m.type === 'venta') totalSales += m.amount;
+                else if(m.type === 'egreso') totalExpenses += Math.abs(m.amount);
+            });
+
+            const totalInDrawer = totalIncomes + totalSales - totalExpenses;
+
+            kpiIncomes.textContent = formatMoney(totalIncomes);
+            kpiSales.textContent = formatMoney(totalSales);
+            kpiExpenses.textContent = formatMoney(totalExpenses);
+            kpiTotal.textContent = formatMoney(totalInDrawer);
+        }
+
+        // --- RENDERIZAR TABLA ---
+        function renderTable() {
+            const search = searchInput.value.toLowerCase();
+            const typeFilter = filterType.value;
+
+            // Filtrar
+            const filtered = dbMovements.filter(m => {
+                const matchSearch = m.detail.toLowerCase().includes(search) || getCategoryName(m.type, m.category).toLowerCase().includes(search);
+                const matchType = typeFilter === 'all' || m.type === typeFilter;
+                return matchSearch && matchType;
+            });
+
+            // Ordenar por ID desc (más nuevos arriba) para visualización
+            const sorted = [...filtered].sort((a,b) => b.id - a.id);
+
+            tableBody.innerHTML = '';
+            let filteredSum = 0;
+
+            sorted.forEach(m => {
+                filteredSum += m.amount;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors group';
+
+                // Badges de Tipo
+                let typeBadge = '';
+                let amountColor = '';
+                let icon = '';
+
+                if (m.type === 'ingreso') {
+                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Ingreso</span>`;
+                    amountColor = 'text-blue-600 font-semibold';
+                    icon = '<i class="fa-solid fa-arrow-turn-up text-blue-400 mr-2 text-xs"></i>';
+                } else if (m.type === 'venta') {
+                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-100 text-emerald-700">Venta</span>`;
+                    amountColor = 'text-emerald-600 font-bold';
+                    icon = '<i class="fa-solid fa-cart-shopping text-emerald-400 mr-2 text-xs"></i>';
+                } else {
+                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-700">Egreso</span>`;
+                    amountColor = 'text-rose-600 font-semibold';
+                    icon = '<i class="fa-solid fa-arrow-turn-down text-rose-400 mr-2 text-xs"></i>';
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${m.time}</td>
+                    <td class="py-3 px-6 border-b border-slate-100">${typeBadge}</td>
+                    <td class="py-3 px-6 text-sm text-slate-800 border-b border-slate-100">
+                        <div class="font-medium">${icon}${getCategoryName(m.type, m.category)}</div>
+                        ${m.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${m.detail}</div>` : ''}
+                    </td>
+                    <td class="py-3 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-circle-user mr-1"></i> ${m.user}</td>
+                    <td class="py-3 px-6 text-sm border-b border-slate-100 text-right ${amountColor}">${m.amount > 0 ? '+' : ''}${formatMoney(m.amount)}</td>
+                    <td class="py-3 px-6 text-center border-b border-slate-100">
+                        ${m.type !== 'venta' ? `
+                        <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Anular Movimiento" onclick="deleteMovement(${m.id})">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>` : `<span class="text-slate-300 text-xs" title="Las ventas se anulan desde su módulo">-</span>`}
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('movement-count').textContent = `Mostrando ${sorted.length} movimientos`;
+            document.getElementById('filtered-total').textContent = formatMoney(filteredSum);
+            
+            updateKPIs();
+        }
+
+        // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
+        function openDrawer(defaultType) {
+            form.reset();
+            
+            // Setear el radio button correspondiente
+            if(defaultType === 'income') {
+                document.getElementById('type-income').checked = true;
+                populateCategories('ingreso');
+            } else {
+                document.getElementById('type-expense').checked = true;
+                populateCategories('egreso');
+            }
+
+            // Animar entrada
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            drawer.classList.remove('drawer-closed');
+            drawer.classList.add('drawer-open');
+            
+            // Foco en monto
+            setTimeout(() => document.getElementById('form-amount').focus(), 300);
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+        }
+
+        // Manejar cambio dinámico de categorías al cambiar Ingreso/Egreso
+        document.querySelectorAll('input[name="mov_type"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                populateCategories(e.target.value);
+            });
+        });
+
+        function populateCategories(type) {
+            categorySelect.innerHTML = '<option value="" disabled selected>Seleccione la razón/concepto...</option>';
+            const list = categories[type];
+            list.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                categorySelect.appendChild(opt);
+            });
+        }
+
+        // --- GUARDAR MOVIMIENTO ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const type = document.querySelector('input[name="mov_type"]:checked').value;
+            let amount = parseFloat(document.getElementById('form-amount').value);
+            const category = document.getElementById('form-category').value;
+            const detail = document.getElementById('form-detail').value;
+
+            // Si es egreso, internamente lo manejamos como negativo
+            if(type === 'egreso') {
+                amount = -Math.abs(amount);
+            }
+
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+            const newId = Math.max(...dbMovements.map(m => m.id), 0) + 1;
+            
+            dbMovements.push({
+                id: newId,
+                time: timeStr,
+                type: type,
+                category: category,
+                detail: detail,
+                user: 'Admin', // Normalmente saldría de la sesión
+                amount: amount
+            });
+
+            closeDrawer();
+            renderTable();
+        });
+
+        // --- ELIMINAR/ANULAR MOVIMIENTO MANUAL ---
+        function deleteMovement(id) {
+            if(confirm('¿Está seguro de anular/eliminar este movimiento manual de caja?')) {
+                dbMovements = dbMovements.filter(m => m.id !== id);
+                renderTable();
+            }
+        }
+
+        // --- EVENTOS BUSCADOR REAL-TIME ---
+        searchInput.addEventListener('input', renderTable);
+        filterType.addEventListener('change', renderTable);
+
+        // Inicializar
+        window.onload = renderTable;
+
+    </script>
+</body>
+</html>

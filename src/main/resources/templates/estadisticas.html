@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco POS - Estadísticas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Estilos específicos para cuando se exporta a PDF */
+        .pdf-exporting {
+            padding: 20px !important;
+            background: white !important;
+            width: 1000px !important; /* Forzar ancho para el PDF */
+        }
+        .pdf-exporting .no-print {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800">
+
+    <!-- Navegación Superior (No se imprime en el PDF) -->
+    <header class="bg-slate-900 text-white shadow-md z-10 relative no-print">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+            </div>
+                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
+                </a>
+                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-box-open mr-2"></i>Compra
+                </a>
+                <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
+                </a>
+                <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
+                </a>
+                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-users mr-2"></i>Clientes
+                </a>
+                <a href="/estadisticas" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal con Scroll -->
+    <main class="flex-1 overflow-y-auto p-6" id="dashboard-content">
+        
+        <div id="pdf-container" class="max-w-7xl mx-auto flex flex-col gap-6">
+            
+            <!-- Encabezado de Dashboard y Filtros -->
+            <div class="flex flex-wrap justify-between items-end gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 flex items-center">
+                        <i class="fa-solid fa-chart-line text-emerald-500 mr-3"></i> Rendimiento del Negocio
+                    </h1>
+                    <p class="text-slate-500 text-sm mt-1" id="report-date-text">Datos actualizados al momento</p>
+                </div>
+                
+                <div class="flex gap-3 no-print">
+                    <!-- Filtro de Tiempo -->
+                    <div class="relative">
+                        <select id="time-filter" onchange="updateDashboard(this.value)" class="pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-700 font-medium appearance-none">
+                            <option value="hoy">Hoy</option>
+                            <option value="semana" selected>Esta Semana</option>
+                            <option value="mes">Este Mes</option>
+                        </select>
+                        <i class="fa-solid fa-calendar-days absolute right-3 top-3 text-slate-400 pointer-events-none"></i>
+                    </div>
+
+                    <!-- Botón Exportar PDF -->
+                    <button onclick="exportToPDF()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                        <i class="fa-solid fa-file-pdf mr-2 text-rose-400"></i> Exportar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPIs Principales (Tarjetas) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Ingresos Totales -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                    <div class="absolute -right-6 -top-6 text-emerald-50 opacity-50 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-money-bill-trend-up text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ingresos Brutos</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mb-2" id="kpi-revenue">$0</h3>
+                        <div class="flex items-center text-sm">
+                            <span class="text-emerald-500 font-semibold bg-emerald-50 px-2 py-0.5 rounded flex items-center" id="kpi-revenue-trend">
+                                <i class="fa-solid fa-arrow-up mr-1 text-xs"></i> 0%
+                            </span>
+                            <span class="text-slate-400 ml-2">vs periodo ant.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ganancia Neta -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                    <div class="absolute -right-6 -top-6 text-blue-50 opacity-50 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-piggy-bank text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ganancia Neta</p>
+                        <h3 class="text-3xl font-bold text-blue-600 mb-2" id="kpi-profit">$0</h3>
+                        <div class="flex items-center text-sm">
+                            <span class="text-emerald-500 font-semibold bg-emerald-50 px-2 py-0.5 rounded flex items-center" id="kpi-profit-trend">
+                                <i class="fa-solid fa-arrow-up mr-1 text-xs"></i> 0%
+                            </span>
+                            <span class="text-slate-400 ml-2">vs periodo ant.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Artículos Vendidos (Reemplazo de Tickets Emitidos) -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                    <div class="absolute -right-6 -top-6 text-indigo-50 opacity-50 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-cubes-stacked text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Artículos Vendidos</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mb-2" id="kpi-items">0</h3>
+                        <div class="flex items-center text-sm">
+                            <span class="text-emerald-500 font-semibold bg-emerald-50 px-2 py-0.5 rounded flex items-center" id="kpi-items-trend">
+                                <i class="fa-solid fa-arrow-up mr-1 text-xs"></i> 0%
+                            </span>
+                            <span class="text-slate-400 ml-2">vs periodo ant.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cantidad de Ventas -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+                    <div class="absolute -right-6 -top-6 text-amber-50 opacity-50 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-basket-shopping text-9xl"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Cantidad de Ventas</p>
+                        <h3 class="text-3xl font-bold text-slate-800 mb-2" id="kpi-sales-count">0</h3>
+                        <div class="flex items-center text-sm">
+                            <span class="text-emerald-500 font-semibold bg-emerald-50 px-2 py-0.5 rounded flex items-center" id="kpi-sales-count-trend">
+                                <i class="fa-solid fa-arrow-up mr-1 text-xs"></i> 0%
+                            </span>
+                            <span class="text-slate-400 ml-2">vs periodo ant.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos (Fila 1) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Gráfico de Líneas: Evolución -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 lg:col-span-2">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Evolución de Ingresos y Ganancias</h3>
+                    <div class="relative h-72 w-full">
+                        <canvas id="evolutionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Barras Horizontales: Top Productos -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Top 5 Productos Más Vendidos</h3>
+                    <div class="relative h-72 w-full">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos y Tablas adicionales (Fila 2) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+                
+                <!-- Gráfico Circular: Desglose por Categoría -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-base font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Ventas por Categoría</h3>
+                    <div class="relative h-64 w-full flex justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla de Datos: Márgenes por Categoría -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 lg:col-span-2 flex flex-col overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="text-base font-bold text-slate-800">Análisis de Márgenes por Categoría</h3>
+                        <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">Basado en datos de Venta</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Categoría</th>
+                                    <th class="py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Cant. Vendida</th>
+                                    <th class="py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Ingresos</th>
+                                    <th class="py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Costo</th>
+                                    <th class="py-3 px-5 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Margen (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="category-table-body" class="divide-y divide-slate-100">
+                                <!-- Filas generadas por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Overlay de Carga para PDF -->
+    <div id="pdf-loading" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-white">
+        <i class="fa-solid fa-circle-notch fa-spin text-5xl text-emerald-500 mb-4"></i>
+        <p class="text-lg font-semibold">Generando Documento PDF...</p>
+        <p class="text-sm text-slate-300 mt-2">Por favor, espere un momento.</p>
+    </div>
+
+    <!-- Script Lógica y Gráficos -->
+    <script>
+        // Formateador de moneda
+        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(amount);
+
+        // Configuración Global de Chart.js para que se vea elegante
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b'; // slate-500
+        Chart.defaults.scale.grid.color = '#f1f5f9'; // slate-100
+
+        // Variables para las instancias de los gráficos (para poder destruirlos al actualizar)
+        let chartEvolution = null;
+        let chartTopProducts = null;
+        let chartCategory = null;
+
+        // --- BASE DE DATOS SIMULADA PARA ESTADÍSTICAS ---
+        const dbStats = {
+            hoy: {
+                kpis: { revenue: 85400, profit: 25600, items: 145, salesCount: 42, trends: { rev: '+12%', prof: '+15%', items: '+8%', salesCount: '+5%' } },
+                evolution: {
+                    labels: ['08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                    revenue: [5000, 12000, 25000, 15000, 8000, 18000, 2400],
+                    profit: [1500, 3600, 7500, 4500, 2400, 5400, 700]
+                },
+                topProducts: {
+                    labels: ['Coca Cola 2.25L', 'Cigarrillos Marlboro', 'Papas Lays', 'Alfajor Jorgito', 'Yerba Playadito'],
+                    data: [15, 12, 10, 8, 4]
+                },
+                categories: [
+                    { name: 'Bebidas', qty: 25, revenue: 35000, cost: 24500, margin: 30 },
+                    { name: 'Kiosco/Cigarrillos', qty: 20, revenue: 25000, cost: 22000, margin: 12 },
+                    { name: 'Snacks', qty: 15, revenue: 15400, cost: 9240, margin: 40 },
+                    { name: 'Almacén', qty: 5, revenue: 10000, cost: 7000, margin: 30 }
+                ]
+            },
+            semana: {
+                kpis: { revenue: 585000, profit: 165000, items: 1250, salesCount: 315, trends: { rev: '+5%', prof: '+8%', items: '+12%', salesCount: '+2%' } },
+                evolution: {
+                    labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+                    revenue: [75000, 68000, 72000, 85000, 110000, 125000, 50000],
+                    profit: [21000, 19000, 20500, 24000, 31000, 35000, 14500]
+                },
+                topProducts: {
+                    labels: ['Coca Cola 2.25L', 'Cigarrillos Marlboro', 'Cerveza Quilmes 1L', 'Papas Lays', 'Fernet Branca'],
+                    data: [120, 95, 80, 65, 30]
+                },
+                categories: [
+                    { name: 'Bebidas', qty: 250, revenue: 260000, cost: 182000, margin: 30 },
+                    { name: 'Kiosco/Cigarrillos', qty: 180, revenue: 180000, cost: 158400, margin: 12 },
+                    { name: 'Snacks', qty: 120, revenue: 85000, cost: 51000, margin: 40 },
+                    { name: 'Almacén', qty: 45, revenue: 60000, cost: 42000, margin: 30 }
+                ]
+            },
+            mes: {
+                kpis: { revenue: 2450000, profit: 710000, items: 5420, salesCount: 1350, trends: { rev: '+15%', prof: '+18%', items: '+20%', salesCount: '+10%' } },
+                evolution: {
+                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                    revenue: [580000, 620000, 590000, 660000],
+                    profit: [160000, 180000, 175000, 195000]
+                },
+                topProducts: {
+                    labels: ['Coca Cola 2.25L', 'Cigarrillos Marlboro', 'Cerveza Quilmes 1L', 'Yerba Playadito', 'Fernet Branca'],
+                    data: [450, 380, 310, 150, 120]
+                },
+                categories: [
+                    { name: 'Bebidas', qty: 950, revenue: 1100000, cost: 770000, margin: 30 },
+                    { name: 'Kiosco/Cigarrillos', qty: 750, revenue: 800000, cost: 704000, margin: 12 },
+                    { name: 'Snacks', qty: 420, revenue: 350000, cost: 210000, margin: 40 },
+                    { name: 'Almacén', qty: 180, revenue: 200000, cost: 140000, margin: 30 }
+                ]
+            }
+        };
+
+        // --- FUNCIONES DE ACTUALIZACIÓN ---
+
+        function updateTrendUI(elementId, text) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = '';
+            
+            if (text.startsWith('+')) {
+                el.className = 'text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded flex items-center';
+                el.innerHTML = `<i class="fa-solid fa-arrow-up mr-1 text-xs"></i> ${text.substring(1)}`;
+            } else if (text.startsWith('-')) {
+                el.className = 'text-rose-600 font-semibold bg-rose-50 px-2 py-0.5 rounded flex items-center';
+                el.innerHTML = `<i class="fa-solid fa-arrow-down mr-1 text-xs"></i> ${text.substring(1)}`;
+            } else {
+                el.className = 'text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded flex items-center';
+                el.innerHTML = `<i class="fa-solid fa-minus mr-1 text-xs"></i> ${text}`;
+            }
+        }
+
+        function updateKPIs(data) {
+            document.getElementById('kpi-revenue').textContent = formatMoney(data.revenue);
+            document.getElementById('kpi-profit').textContent = formatMoney(data.profit);
+            document.getElementById('kpi-items').textContent = data.items.toLocaleString('es-AR');
+            document.getElementById('kpi-sales-count').textContent = data.salesCount.toLocaleString('es-AR');
+
+            updateTrendUI('kpi-revenue-trend', data.trends.rev);
+            updateTrendUI('kpi-profit-trend', data.trends.prof);
+            updateTrendUI('kpi-items-trend', data.trends.items);
+            updateTrendUI('kpi-sales-count-trend', data.trends.salesCount);
+        }
+
+        function renderEvolutionChart(data) {
+            const ctx = document.getElementById('evolutionChart').getContext('2d');
+            if(chartEvolution) chartEvolution.destroy();
+
+            chartEvolution = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: data.revenue,
+                            borderColor: '#10b981', // emerald-500
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4 // Curvas suaves
+                        },
+                        {
+                            label: 'Ganancia',
+                            data: data.profit,
+                            borderColor: '#3b82f6', // blue-500
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', align: 'end' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderTopProductsChart(data) {
+            const ctx = document.getElementById('topProductsChart').getContext('2d');
+            if(chartTopProducts) chartTopProducts.destroy();
+
+            chartTopProducts = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Cant. Vendida',
+                        data: data.data,
+                        backgroundColor: '#1e293b', // slate-800
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Hace el gráfico horizontal
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderCategoryChart(dataArr) {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            if(chartCategory) chartCategory.destroy();
+
+            const labels = dataArr.map(d => d.name);
+            const data = dataArr.map(d => d.revenue);
+
+            chartCategory = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#10b981', // emerald
+                            '#3b82f6', // blue
+                            '#f59e0b', // amber
+                            '#64748b'  // slate
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function renderTable(dataArr) {
+            const tbody = document.getElementById('category-table-body');
+            tbody.innerHTML = '';
+
+            dataArr.forEach(cat => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                
+                // Color condicional para el margen
+                let marginColor = 'text-slate-900';
+                if(cat.margin >= 30) marginColor = 'text-emerald-600 font-bold';
+                if(cat.margin <= 15) marginColor = 'text-rose-500 font-bold';
+
+                tr.innerHTML = `
+                    <td class="py-3 px-5 text-sm font-semibold text-slate-800 border-b border-slate-100">${cat.name}</td>
+                    <td class="py-3 px-5 text-sm text-slate-600 border-b border-slate-100 text-right">${cat.qty} un.</td>
+                    <td class="py-3 px-5 text-sm font-medium text-slate-900 border-b border-slate-100 text-right">${formatMoney(cat.revenue)}</td>
+                    <td class="py-3 px-5 text-sm text-slate-500 border-b border-slate-100 text-right">${formatMoney(cat.cost)}</td>
+                    <td class="py-3 px-5 text-sm border-b border-slate-100 text-right ${marginColor}">${cat.margin}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Función Principal del Dashboard
+        function updateDashboard(period) {
+            const data = dbStats[period];
+            
+            updateKPIs(data.kpis);
+            renderEvolutionChart(data.evolution);
+            renderTopProductsChart(data.topProducts);
+            renderCategoryChart(data.categories);
+            renderTable(data.categories);
+
+            // Actualizar texto de fecha
+            const dateStr = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('report-date-text').textContent = `Reporte generado el ${dateStr} - Filtro: ${period.toUpperCase()}`;
+        }
+
+        // --- EXPORTACIÓN A PDF (html2pdf) ---
+        function exportToPDF() {
+            const element = document.getElementById('pdf-container');
+            const loadingOverlay = document.getElementById('pdf-loading');
+            const period = document.getElementById('time-filter').value;
+            
+            // Mostrar pantalla de carga
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            
+            // Añadir clase temporal para ajustar estilos de impresión
+            element.classList.add('pdf-exporting');
+
+            const opt = {
+                margin:       10,
+                filename:     `Reporte_Estadisticas_${period}_MiKiosco.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            // Pequeño delay para asegurar que los gráficos terminaron sus animaciones
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Restaurar interfaz
+                    element.classList.remove('pdf-exporting');
+                    loadingOverlay.classList.add('hidden');
+                    loadingOverlay.classList.remove('flex');
+                });
+            }, 500);
+        }
+
+        // Inicializar al cargar la página (Por defecto "semana")
+        window.onload = () => {
+            updateDashboard('semana');
+        };
+
+    </script>
+</body>
+</html>

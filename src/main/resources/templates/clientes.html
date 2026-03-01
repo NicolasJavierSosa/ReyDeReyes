@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco POS - Clientes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Animaciones para el panel lateral */
+        .drawer-open { transform: translateX(0); }
+        .drawer-closed { transform: translateX(100%); }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800 relative">
+
+    <!-- Navegación Superior -->
+    <header class="bg-slate-900 text-white shadow-md z-10 relative">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+            </div>
+                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
+                </a>
+                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-box-open mr-2"></i>Compra
+                </a>
+                <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
+                </a>
+                <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
+                </a>
+                <a href="/clientes" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
+                    <i class="fa-solid fa-users mr-2"></i>Clientes
+                </a>
+                <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Área Principal de Clientes -->
+    <main class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
+        
+        <!-- Tarjetas de Resumen (KPIs) -->
+        <div class="grid grid-cols-3 gap-4">
+            <!-- Total de Clientes -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-users-line"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Registrados</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-total">0</p>
+                </div>
+            </div>
+
+            <!-- Clientes Activos -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Clientes Activos</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-active">0</p>
+                </div>
+            </div>
+
+            <!-- Clientes Inactivos / Suspendidos -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-user-xmark"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Inactivos</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-inactive">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Herramientas -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+            
+            <!-- Filtros y Búsqueda -->
+            <div class="flex gap-4 items-end flex-1">
+                <div class="w-80">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscar Cliente</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Nombre, DNI, teléfono o email..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="w-48">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Estado</label>
+                    <select id="filter-status" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600">
+                        <option value="all">Todos</option>
+                        <option value="active">Activos</option>
+                        <option value="inactive">Inactivos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div>
+                <button onclick="openDrawer('add')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm shadow-emerald-500/30 flex items-center">
+                    <i class="fa-solid fa-user-plus mr-2"></i> Registrar Cliente
+                </button>
+            </div>
+        </div>
+
+        <!-- Grilla de Clientes -->
+        <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative">
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">DNI / CUIT</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Nombre Completo</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Teléfono</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Correo Electrónico</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Estado</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-24">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customers-body" class="divide-y divide-slate-100">
+                        <!-- Clientes generados por JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación Footer -->
+            <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex justify-between items-center text-sm text-slate-600">
+                <span id="customers-count">Mostrando 0 clientes</span>
+                <div class="flex gap-1">
+                    <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-200 bg-white"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="px-3 py-1 border border-slate-300 rounded bg-emerald-500 text-white font-medium">1</button>
+                    <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-200 bg-white"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY OSCURO PARA EL PANEL LATERAL -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+
+    <!-- PANEL LATERAL (SLIDE-OVER) PARA FORMULARIO DE CLIENTE -->
+    <div id="customer-drawer" class="fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
+        
+        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 id="drawer-title" class="text-lg font-bold text-slate-800"><i class="fa-solid fa-user-plus mr-2 text-emerald-500"></i>Registrar Cliente</h2>
+            <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto">
+            <form id="customer-form" class="flex flex-col gap-5">
+                <input type="hidden" id="form-id">
+                
+                <!-- DNI / CUIT -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">DNI / CUIT *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-regular fa-id-card text-slate-400"></i>
+                        </div>
+                        <input type="text" id="form-document" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: 35123456">
+                    </div>
+                </div>
+
+                <!-- Nombre -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre Completo *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-regular fa-user text-slate-400"></i>
+                        </div>
+                        <input type="text" id="form-name" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Juan Pérez">
+                    </div>
+                </div>
+
+                <!-- Teléfono -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Teléfono</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-phone text-slate-400"></i>
+                        </div>
+                        <input type="text" id="form-phone" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: +54 9 376 4123456">
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-regular fa-envelope text-slate-400"></i>
+                        </div>
+                        <input type="email" id="form-email" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="ejemplo@correo.com">
+                    </div>
+                </div>
+
+                <!-- Dirección -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Dirección (Opcional)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 pt-3 pointer-events-none">
+                            <i class="fa-solid fa-location-dot text-slate-400"></i>
+                        </div>
+                        <textarea id="form-address" rows="2" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none" placeholder="Calle y número, Barrio..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Notas Internas</label>
+                    <textarea id="form-notes" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none" placeholder="Tiene cuenta corriente, es mayorista, etc."></textarea>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Botones de Acción Formulario -->
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+            <button type="button" id="btn-toggle-status" onclick="toggleStatusFromForm()" class="text-rose-600 hover:text-rose-800 font-medium text-sm hidden transition-colors">
+                <i class="fa-solid fa-ban mr-1"></i> Desactivar
+            </button>
+            <div class="flex gap-3 ml-auto">
+                <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Cancelar
+                </button>
+                <button type="submit" form="customer-form" class="px-5 py-2.5 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all font-medium flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Lógica -->
+    <script>
+        // --- BASE DE DATOS SIMULADA ---
+        let dbCustomers = [
+            { id: 1, document: '35123456', name: 'Martín Rodríguez', phone: '+54 9 376 4112233', email: 'martin.r@email.com', address: 'Av. Corrientes 1234, Posadas', status: 'active', notes: 'Cliente frecuente' },
+            { id: 2, document: '28987654', name: 'Laura Gómez', phone: '+54 9 376 4998877', email: 'laura.gomez@email.com', address: 'Calle Bolívar 432', status: 'active', notes: 'Tiene cuenta corriente' },
+            { id: 3, document: '20-41555666-8', name: 'Kiosco El Sol (Carlos Paz)', phone: '0376 4445555', email: 'contacto@elsol.com', address: 'Barrio Itaembé Miní', status: 'active', notes: 'Compra mayorista' },
+            { id: 4, document: '40111222', name: 'Sofía Martínez', phone: '+54 9 376 4223344', email: '-', address: '-', status: 'inactive', notes: 'Deuda pendiente, no fiar' },
+            { id: 5, document: '31555444', name: 'Diego Fernández', phone: '+54 9 376 4556677', email: 'diego.f@email.com', address: 'Centro', status: 'active', notes: '' }
+        ];
+
+        let currentEditId = null;
+
+        // Elementos DOM
+        const tableBody = document.getElementById('customers-body');
+        const searchInput = document.getElementById('search-input');
+        const filterStatus = document.getElementById('filter-status');
+        
+        const kpiTotal = document.getElementById('kpi-total');
+        const kpiActive = document.getElementById('kpi-active');
+        const kpiInactive = document.getElementById('kpi-inactive');
+
+        const drawer = document.getElementById('customer-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const drawerTitle = document.getElementById('drawer-title');
+        const form = document.getElementById('customer-form');
+        const btnToggleStatus = document.getElementById('btn-toggle-status');
+
+        // --- ACTUALIZAR KPIS ---
+        function updateKPIs() {
+            const total = dbCustomers.length;
+            const active = dbCustomers.filter(c => c.status === 'active').length;
+            const inactive = total - active;
+
+            kpiTotal.textContent = total;
+            kpiActive.textContent = active;
+            kpiInactive.textContent = inactive;
+        }
+
+        // --- RENDERIZAR TABLA ---
+        function renderTable() {
+            const search = searchInput.value.toLowerCase();
+            const statusFilter = filterStatus.value;
+
+            // Filtrar
+            const filtered = dbCustomers.filter(c => {
+                const matchSearch = 
+                    c.name.toLowerCase().includes(search) || 
+                    c.document.includes(search) || 
+                    c.phone.includes(search) || 
+                    c.email.toLowerCase().includes(search);
+                const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+                
+                return matchSearch && matchStatus;
+            });
+
+            tableBody.innerHTML = '';
+
+            filtered.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-50 transition-colors cursor-pointer group ${c.status === 'inactive' ? 'bg-slate-50/50 opacity-70' : ''}`;
+                tr.onclick = (e) => {
+                    // Evitar abrir si se hizo clic en el botón de acción directamente
+                    if(!e.target.closest('button')) openDrawer('edit', c.id);
+                };
+
+                const statusBadge = c.status === 'active' 
+                    ? `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i>Activo</span>`
+                    : `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-600 border border-slate-300"><i class="fa-solid fa-ban mr-1"></i>Inactivo</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6 text-sm font-medium text-slate-900 border-b border-slate-100">${c.document}</td>
+                    <td class="py-4 px-6 text-sm text-slate-800 border-b border-slate-100 font-semibold">${c.name}</td>
+                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100">${c.phone || '-'}</td>
+                    <td class="py-4 px-6 text-sm text-slate-500 border-b border-slate-100">${c.email !== '-' ? c.email : '<span class="text-slate-300">Sin correo</span>'}</td>
+                    <td class="py-4 px-6 text-center border-b border-slate-100">${statusBadge}</td>
+                    <td class="py-4 px-6 text-center border-b border-slate-100">
+                        <button onclick="openDrawer('edit', ${c.id})" class="text-slate-400 hover:text-emerald-500 transition-colors p-2 rounded hover:bg-slate-100" title="Editar Cliente">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('customers-count').textContent = `Mostrando ${filtered.length} clientes`;
+            updateKPIs();
+        }
+
+        // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
+        function openDrawer(mode, id = null) {
+            form.reset();
+            currentEditId = id;
+
+            if (mode === 'add') {
+                drawerTitle.innerHTML = `<i class="fa-solid fa-user-plus mr-2 text-emerald-500"></i>Registrar Cliente`;
+                btnToggleStatus.classList.add('hidden');
+                document.getElementById('form-id').value = '';
+            } else if (mode === 'edit') {
+                drawerTitle.innerHTML = `<i class="fa-solid fa-user-pen mr-2 text-amber-500"></i>Modificar Cliente`;
+                const customer = dbCustomers.find(c => c.id === id);
+                
+                if(customer) {
+                    document.getElementById('form-id').value = customer.id;
+                    document.getElementById('form-document').value = customer.document;
+                    document.getElementById('form-name').value = customer.name;
+                    document.getElementById('form-phone').value = customer.phone !== '-' ? customer.phone : '';
+                    document.getElementById('form-email').value = customer.email !== '-' ? customer.email : '';
+                    document.getElementById('form-address').value = customer.address !== '-' ? customer.address : '';
+                    document.getElementById('form-notes').value = customer.notes;
+
+                    btnToggleStatus.classList.remove('hidden');
+                    if(customer.status === 'active') {
+                        btnToggleStatus.innerHTML = `<i class="fa-solid fa-ban mr-1"></i> Desactivar`;
+                        btnToggleStatus.className = "text-rose-600 hover:text-rose-800 font-medium text-sm transition-colors";
+                    } else {
+                        btnToggleStatus.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Reactivar`;
+                        btnToggleStatus.className = "text-emerald-600 hover:text-emerald-800 font-medium text-sm transition-colors";
+                    }
+                }
+            }
+
+            // Animar entrada
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            drawer.classList.remove('drawer-closed');
+            drawer.classList.add('drawer-open');
+            
+            // Foco en el primer campo
+            setTimeout(() => document.getElementById('form-document').focus(), 300);
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+            currentEditId = null;
+        }
+
+        // --- GUARDAR CLIENTE ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const cData = {
+                document: document.getElementById('form-document').value.trim(),
+                name: document.getElementById('form-name').value.trim(),
+                phone: document.getElementById('form-phone').value.trim() || '-',
+                email: document.getElementById('form-email').value.trim() || '-',
+                address: document.getElementById('form-address').value.trim() || '-',
+                notes: document.getElementById('form-notes').value.trim()
+            };
+
+            if (currentEditId) {
+                // Actualizar
+                const index = dbCustomers.findIndex(c => c.id === currentEditId);
+                if(index !== -1) {
+                    dbCustomers[index] = { ...dbCustomers[index], ...cData };
+                }
+            } else {
+                // Nuevo
+                const newId = Math.max(...dbCustomers.map(c => c.id), 0) + 1;
+                dbCustomers.push({
+                    id: newId,
+                    ...cData,
+                    status: 'active'
+                });
+            }
+
+            closeDrawer();
+            renderTable();
+        });
+
+        // --- CAMBIAR ESTADO (ALTA/BAJA) ---
+        function toggleStatusFromForm() {
+            if (!currentEditId) return;
+
+            const index = dbCustomers.findIndex(c => c.id === currentEditId);
+            if(index !== -1) {
+                const currentStatus = dbCustomers[index].status;
+                const confirmMsg = currentStatus === 'active' 
+                    ? `¿Estás seguro de desactivar al cliente "${dbCustomers[index].name}"?`
+                    : `¿Reactivar al cliente "${dbCustomers[index].name}"?`;
+
+                if(confirm(confirmMsg)) {
+                    dbCustomers[index].status = currentStatus === 'active' ? 'inactive' : 'active';
+                    closeDrawer();
+                    renderTable();
+                }
+            }
+        }
+
+        // --- EVENTOS BUSCADOR REAL-TIME ---
+        searchInput.addEventListener('input', renderTable);
+        filterStatus.addEventListener('change', renderTable);
+
+        // Inicializar
+        window.onload = renderTable;
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosco POS - Inventario</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* Animaciones para el panel lateral */
+        .drawer-open { transform: translateX(0); }
+        .drawer-closed { transform: translateX(100%); }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800 relative">
+
+    <!-- Navegación Superior -->
+    <header class="bg-slate-900 text-white shadow-md z-10 relative">
+        <div class="px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
+                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+            </div>
+                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
+                </a>
+                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-box-open mr-2"></i>Compra
+                </a>
+                <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
+                </a>
+                <a href="/inventario" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
+                    <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
+                </a>
+                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-users mr-2"></i>Clientes
+                </a>
+                <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Área Principal de Inventario -->
+    <main class="flex-1 flex flex-col p-6 gap-4 overflow-hidden">
+        
+        <!-- Barra de Herramientas (Filtros y Buscador) -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end justify-between">
+            
+            <div class="flex flex-wrap gap-4 items-end flex-1">
+                <!-- Buscador General -->
+                <div class="w-72">
+                    <label for="search-input" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscar Producto</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Nombre, código..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                                <!-- Filtro Categoria -->
+                <div class="w-48">
+                    <label for="filter-category" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Categor&iacute;a</label>
+                    <select id="filter-category" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+
+<!-- Filtro Estado -->
+                <div class="w-48">
+                    <label for="filter-status" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Estado</label>
+                    <select id="filter-status" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                        <option value="all">Todos</option>
+                        <option value="active">Activos</option>
+                        <option value="inactive">Dados de Baja</option>
+                    </select>
+                </div>
+                
+                <button onclick="renderTable()" class="px-4 py-2 text-slate-500 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 transition-colors">
+                    <i class="fa-solid fa-filter"></i> Filtrar
+                </button>
+            </div>
+
+            <!-- Botón Registrar -->
+            <div>
+                <button onclick="openDrawer('add')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center shadow-emerald-500/30">
+                    <i class="fa-solid fa-plus mr-2"></i> Registrar Producto
+                </button>
+            </div>
+        </div>
+
+        <!-- Grilla de Inventario -->
+        <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative">
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
+                        <tr>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Código</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Producto</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Categoría</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Precio Venta</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Stock</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Estado</th>
+                            <th class="py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body" class="divide-y divide-slate-100">
+                        <!-- Productos generados por JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación Footer -->
+            <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex justify-between items-center text-sm text-slate-600">
+                <span id="inventory-count">Mostrando 0 productos</span>
+                <div class="flex gap-1">
+                    <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-200 bg-white"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="px-3 py-1 border border-slate-300 rounded bg-emerald-500 text-white font-medium">1</button>
+                    <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-200 bg-white">2</button>
+                    <button class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-200 bg-white"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- OVERLAY OSCURO PARA EL PANEL LATERAL -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+
+    <!-- PANEL LATERAL (SLIDE-OVER) PARA FORMULARIO DE PRODUCTO -->
+    <div id="product-drawer" class="fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
+        
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 id="drawer-title" class="text-lg font-bold text-slate-800"><i class="fa-solid fa-box mr-2 text-emerald-500"></i>Registrar Producto</h2>
+            <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto">
+                        <form id="product-form" class="flex flex-col gap-5">
+                <input type="hidden" id="form-id">
+                
+                <!-- Codigo -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">C&oacute;digo de Barra / Interno *</label>
+                    <div class="relative">
+                        <input type="text" id="form-code" required inputmode="numeric" pattern="[0-9]*" autocomplete="off" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        <button type="button" id="btn-off-lookup" class="absolute right-2 top-2 text-slate-400 hover:text-emerald-500" title="Buscar en OpenFoodFacts">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </div>
+                    <p id="off-status" class="text-xs text-slate-500 mt-1 hidden"></p>
+                </div>
+
+                <!-- Nombre -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Producto *</label>
+                    <input type="text" id="form-name" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Coca Cola 2.25L">
+                </div>
+
+                <!-- Descripcion -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Descripci&oacute;n</label>
+                    <textarea id="form-description" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none"></textarea>
+                </div>
+
+                                <!-- Categoria -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Categor&iacute;a *</label>
+                    <div class="flex gap-2">
+                        <select id="form-category" required class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                            <option value="" disabled selected>Seleccione una categor&iacute;a</option>
+                        </select>
+                        <button type="button" id="btn-category-manage" class="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors" title="Gestionar categorias">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
+                    </div>
+                </div>
+
+<!-- Unidad y Tipo (Row) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Unidad de Medida *</label>
+                        <select id="form-unit" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                            <option value="" disabled selected>Seleccione unidad</option>
+                            <option value="UN">Unidad (UN)</option>
+                            <option value="KG">Kilogramo (KG)</option>
+                            <option value="G">Gramo (G)</option>
+                            <option value="L">Litro (L)</option>
+                            <option value="ML">Mililitro (ML)</option>
+                                                    </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Tipo *</label>
+                        <select id="form-type" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                            <option value="" disabled selected>Seleccione tipo</option>
+                            <option value="Producto">Producto</option>
+                            <option value="Insumo">Insumo</option>
+                            <option value="Servicio">Servicio</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Precios (Row) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Precio Costo</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="number" id="form-cost" step="0.01" min="0" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Precio Venta *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="number" id="form-price" step="0.01" min="0" required class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock (Row) -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Stock Actual *</label>
+                        <input type="number" id="form-stock" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Stock M&iacute;nimo</label>
+                        <input type="number" id="form-min-stock" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <!-- Activo -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="form-active" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
+                    <label for="form-active" class="text-sm font-semibold text-slate-700">Activo</label>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Botones de Acción Formulario -->
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+            <button type="button" id="btn-toggle-status" onclick="toggleStatusFromForm()" class="text-rose-600 hover:text-rose-800 font-medium text-sm hidden">
+                <i class="fa-solid fa-ban mr-1"></i> Dar de baja
+            </button>
+            <div class="flex gap-3 ml-auto">
+                <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Cancelar
+                </button>
+                <button type="submit" form="product-form" class="px-5 py-2.5 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all font-medium flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+        <!-- MODAL GESTION DE CATEGORIAS -->
+    <div id="category-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeCategoryModal()"></div>
+        <div class="relative mx-auto mt-16 w-[520px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center rounded-t-xl">
+                <h3 class="font-bold flex items-center"><i class="fa-solid fa-tags mr-2 text-emerald-400"></i> Categor&iacute;as</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Nombre de categor&iacute;a</label>
+                <div class="flex gap-2">
+                    <input type="text" id="category-name-input" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Limpieza">
+                    <button type="button" id="btn-category-save" class="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-colors">Agregar</button>
+                </div>
+                <p id="category-modal-status" class="text-xs text-slate-500 mt-2 hidden"></p>
+
+                <div class="mt-5">
+                    <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Categor&iacute;as existentes</h4>
+                    <ul id="category-list" class="divide-y divide-slate-100 border border-slate-200 rounded-lg max-h-64 overflow-y-auto"></ul>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button type="button" id="btn-category-cancel" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Script Lógica -->
+                <script>
+        // --- CATEGORIAS (API) ---
+        let categories = [];
+
+        // --- BASE DE DATOS SIMULADA ---
+        let dbProducts = [
+            { id: 1, barcode: '77912345', name: 'Coca Cola 2.25L', description: '', categoryId: null, categoryName: 'Bebidas', unit: 'L', type: 'Producto', cost: 1800, price: 2500, stock: 45, minStock: 10, active: true },
+            { id: 2, barcode: '77954321', name: 'Papas Lays Clasicas 145g', description: '', categoryId: null, categoryName: 'Snacks', unit: 'G', type: 'Producto', cost: 1200, price: 1800, stock: 12, minStock: 15, active: true },
+            { id: 3, barcode: '77900011', name: 'Alfajor Jorgito Chocolate', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'UN', type: 'Producto', cost: 350, price: 600, stock: 120, minStock: 20, active: true },
+            { id: 4, barcode: '77999999', name: 'Cigarrillos Marlboro Box 20', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'UN', type: 'Producto', cost: 1950, price: 2200, stock: 0, minStock: 10, active: false },
+            { id: 5, barcode: '123', name: 'Caramelos Surtidos (100g)', description: '', categoryId: null, categoryName: 'Kiosco', unit: 'G', type: 'Producto', cost: 200, price: 400, stock: 500, minStock: 100, active: true },
+            { id: 6, barcode: '77944444', name: 'Yerba Playadito 500g', description: '', categoryId: null, categoryName: 'Almacen', unit: 'G', type: 'Producto', cost: 2100, price: 3000, stock: 8, minStock: 5, active: true }
+        ];
+
+        let currentEditId = null;
+        let offLookupTimer = null;
+        let scanBuffer = '';
+        let scanTimer = null;
+        let editingCategoryId = null;
+
+        // Elementos DOM
+        const tableBody = document.getElementById('inventory-body');
+        const drawer = document.getElementById('product-drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        const drawerTitle = document.getElementById('drawer-title');
+        const form = document.getElementById('product-form');
+        const btnToggleStatus = document.getElementById('btn-toggle-status');
+
+        // Inputs Filtros
+        const searchInput = document.getElementById('search-input');
+        const filterCategory = document.getElementById('filter-category');
+        const filterStatus = document.getElementById('filter-status');
+
+        // Inputs Formulario
+        const barcodeInput = document.getElementById('form-code');
+        const nameInput = document.getElementById('form-name');
+        const descriptionInput = document.getElementById('form-description');
+        const categorySelect = document.getElementById('form-category');
+        const unitSelect = document.getElementById('form-unit');
+        const typeSelect = document.getElementById('form-type');
+        const costInput = document.getElementById('form-cost');
+        const priceInput = document.getElementById('form-price');
+        const stockInput = document.getElementById('form-stock');
+        const minStockInput = document.getElementById('form-min-stock');
+        const activeCheckbox = document.getElementById('form-active');
+        const offStatus = document.getElementById('off-status');
+        const offLookupBtn = document.getElementById('btn-off-lookup');
+        const categoryManageBtn = document.getElementById('btn-category-manage');
+
+        // Modal categorias
+        const categoryModal = document.getElementById('category-modal');
+        const categoryList = document.getElementById('category-list');
+        const categoryNameInput = document.getElementById('category-name-input');
+        const categoryStatus = document.getElementById('category-modal-status');
+        const categorySaveBtn = document.getElementById('btn-category-save');
+        const categoryCancelBtn = document.getElementById('btn-category-cancel');
+
+        // Formateador
+        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
+
+        function categoryLabelById(id, fallback) {
+            if (id == null) return fallback || '-';
+            const found = categories.find(c => String(c.id) === String(id));
+            return found ? found.nombre : (fallback || '-');
+        }
+
+        function resolveCategoryIdByName(name) {
+            if (!name) return null;
+            const found = categories.find(c => c.nombre && c.nombre.toLowerCase() === name.toLowerCase());
+            return found ? found.id : null;
+        }
+
+        function normalizeProductCategories() {
+            dbProducts = dbProducts.map(p => {
+                if (p.categoryId) return p;
+                if (!p.categoryName) return p;
+                const resolved = resolveCategoryIdByName(p.categoryName);
+                return resolved ? { ...p, categoryId: resolved } : p;
+            });
+        }
+
+        function renderCategoryOptions() {
+            const selectedForm = categorySelect.value || '';
+            const selectedFilter = filterCategory.value || 'all';
+
+            categorySelect.innerHTML = '<option value="" disabled>Seleccione una categoria</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = String(cat.id);
+                option.textContent = cat.nombre;
+                categorySelect.appendChild(option);
+            });
+
+            if (selectedForm && categories.some(c => String(c.id) === selectedForm)) {
+                categorySelect.value = selectedForm;
+            } else {
+                categorySelect.selectedIndex = 0;
+            }
+
+            filterCategory.innerHTML = '<option value="all">Todas</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = String(cat.id);
+                option.textContent = cat.nombre;
+                filterCategory.appendChild(option);
+            });
+
+            if (categories.some(c => String(c.id) === selectedFilter)) {
+                filterCategory.value = selectedFilter;
+            } else {
+                filterCategory.value = 'all';
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categorias');
+                if (!response.ok) throw new Error('error');
+                categories = await response.json();
+                renderCategoryOptions();
+                normalizeProductCategories();
+                renderTable();
+            } catch (error) {
+                console.error('No se pudieron cargar categorias', error);
+            }
+        }
+
+        // --- RENDERIZAR TABLA ---
+        function renderTable() {
+            const search = searchInput.value.toLowerCase();
+            const category = filterCategory.value;
+            const status = filterStatus.value;
+
+            const filteredProducts = dbProducts.filter(p => {
+                const matchSearch = p.name.toLowerCase().includes(search) || p.barcode.includes(search);
+                const matchCategory = category === 'all' || String(p.categoryId || '') === category;
+                const matchStatus = status === 'all' || (status === 'active' && p.active) || (status === 'inactive' && !p.active);
+                return matchSearch && matchCategory && matchStatus;
+            });
+
+            tableBody.innerHTML = '';
+
+            filteredProducts.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-50 transition-colors cursor-pointer group ${!p.active ? 'bg-slate-50/50 opacity-70' : ''}`;
+                tr.onclick = () => openDrawer('edit', p.id);
+
+                const stockColor = p.stock <= p.minStock && p.active ? 'text-rose-600 font-bold' : 'text-slate-900';
+
+                const statusBadge = p.active
+                    ? `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Activo</span>`
+                    : `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-600 border border-slate-300">Dado de baja</span>`;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-sm font-medium text-slate-900 border-b border-slate-100">${p.barcode}</td>
+                    <td class="py-3 px-4 text-sm text-slate-800 border-b border-slate-100 font-medium">${p.name}</td>
+                    <td class="py-3 px-4 text-sm text-slate-500 border-b border-slate-100">${categoryLabelById(p.categoryId, p.categoryName)}</td>
+                    <td class="py-3 px-4 text-sm font-semibold text-emerald-600 border-b border-slate-100 text-right">${formatMoney(p.price)}</td>
+                    <td class="py-3 px-4 text-sm border-b border-slate-100 text-right ${stockColor}">${p.stock}</td>
+                    <td class="py-3 px-4 text-center border-b border-slate-100">${statusBadge}</td>
+                    <td class="py-3 px-4 text-center border-b border-slate-100">
+                        <button class="text-slate-400 hover:text-emerald-500 transition-colors p-1" title="Editar">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById('inventory-count').textContent = `Mostrando ${filteredProducts.length} productos`;
+        }
+
+        // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
+        function openDrawer(mode, id = null) {
+            form.reset();
+            clearOffStatus();
+            currentEditId = id;
+
+            if (mode === 'add') {
+                drawerTitle.innerHTML = `<i class="fa-solid fa-box mr-2 text-emerald-500"></i>Registrar Producto`;
+                btnToggleStatus.classList.add('hidden');
+                document.getElementById('form-id').value = '';
+                activeCheckbox.checked = true;
+            } else if (mode === 'edit') {
+                drawerTitle.innerHTML = `<i class="fa-solid fa-pen-to-square mr-2 text-amber-500"></i>Modificar Producto`;
+                const product = dbProducts.find(p => p.id === id);
+
+                if (product) {
+                    document.getElementById('form-id').value = product.id;
+                    barcodeInput.value = product.barcode;
+                    nameInput.value = product.name;
+                    descriptionInput.value = product.description || '';
+                    categorySelect.value = product.categoryId ? String(product.categoryId) : '';
+                    unitSelect.value = product.unit || '';
+                    typeSelect.value = product.type || '';
+                    costInput.value = product.cost;
+                    priceInput.value = product.price;
+                    stockInput.value = product.stock;
+                    minStockInput.value = product.minStock;
+                    activeCheckbox.checked = !!product.active;
+
+                    btnToggleStatus.classList.remove('hidden');
+                    if (product.active) {
+                        btnToggleStatus.innerHTML = `<i class="fa-solid fa-ban mr-1"></i> Dar de baja`;
+                        btnToggleStatus.className = 'text-rose-600 hover:text-rose-800 font-medium text-sm';
+                    } else {
+                        btnToggleStatus.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Dar de alta`;
+                        btnToggleStatus.className = 'text-emerald-600 hover:text-emerald-800 font-medium text-sm';
+                    }
+                }
+            }
+
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            drawer.classList.remove('drawer-closed');
+            drawer.classList.add('drawer-open');
+
+            setTimeout(() => barcodeInput.focus(), 200);
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+            currentEditId = null;
+            clearOffStatus();
+        }
+
+        // --- OPENFOODFACTS LOOKUP ---
+        function setOffStatus(message, tone) {
+            if (!offStatus) return;
+            offStatus.textContent = message;
+            offStatus.classList.remove('hidden');
+            offStatus.classList.remove('text-emerald-600', 'text-rose-600', 'text-slate-500');
+
+            if (tone === 'success') {
+                offStatus.classList.add('text-emerald-600');
+            } else if (tone === 'error') {
+                offStatus.classList.add('text-rose-600');
+            } else {
+                offStatus.classList.add('text-slate-500');
+            }
+        }
+
+        function clearOffStatus() {
+            if (!offStatus) return;
+            offStatus.textContent = '';
+            offStatus.classList.add('hidden');
+        }
+
+        function mapCategory(categoriesText) {
+            const value = (categoriesText || '').toLowerCase();
+            if (value.includes('bebida') || value.includes('beverage') || value.includes('drink')) return resolveCategoryIdByName('Bebidas');
+            if (value.includes('snack') || value.includes('chip') || value.includes('golosina') || value.includes('sweet')) return resolveCategoryIdByName('Snacks');
+            if (value.includes('almacen') || value.includes('pantry') || value.includes('grocery')) return resolveCategoryIdByName('Almacen');
+            if (value.includes('kiosco') || value.includes('candy') || value.includes('chocolate')) return resolveCategoryIdByName('Kiosco');
+            return null;
+        }
+
+        function mapUnitFromQuantity(quantity) {
+            const value = (quantity || '').toLowerCase();
+            if (value.includes('kg')) return 'KG';
+            if (value.includes(' g')) return 'G';
+            if (value.includes('ml')) return 'ML';
+            if (value.includes(' l')) return 'L';
+            if (value.includes('un')) return 'UN';
+            return '';
+        }
+
+        async function lookupOpenFoodFacts() {
+            const code = barcodeInput.value.trim();
+            if (!code) {
+                setOffStatus('Ingrese un codigo para buscar.', 'error');
+                return;
+            }
+            if (!/^\d{6,14}$/.test(code)) {
+                setOffStatus('Codigo invalido. Use solo numeros.', 'error');
+                return;
+            }
+
+            setOffStatus('Buscando en OpenFoodFacts...', 'info');
+
+            try {
+                const response = await fetch(`/api/openfoodfacts/${encodeURIComponent(code)}`);
+                if (!response.ok) {
+                    setOffStatus('No encontrado en OpenFoodFacts.', 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                if (!data || !data.found) {
+                    setOffStatus('No encontrado en OpenFoodFacts.', 'error');
+                    return;
+                }
+
+                if (data.name && !nameInput.value) nameInput.value = data.name;
+                if (data.description && !descriptionInput.value) descriptionInput.value = data.description;
+
+                if (data.categories && !categorySelect.value) {
+                    const mapped = mapCategory(data.categories);
+                    if (mapped) categorySelect.value = String(mapped);
+                }
+
+                if (data.quantity && !unitSelect.value) {
+                    const unit = mapUnitFromQuantity(data.quantity);
+                    if (unit) unitSelect.value = unit;
+                }
+
+                setOffStatus('Datos cargados desde OpenFoodFacts.', 'success');
+            } catch (error) {
+                setOffStatus('Error al consultar OpenFoodFacts.', 'error');
+            }
+        }
+
+        function scheduleOpenFoodFactsLookup() {
+            if (offLookupTimer) clearTimeout(offLookupTimer);
+            offLookupTimer = setTimeout(() => {
+                if (barcodeInput.value.trim().length >= 6) {
+                    lookupOpenFoodFacts();
+                }
+            }, 450);
+        }
+
+        // --- GESTION DE CATEGORIAS ---
+        function setCategoryStatus(message, tone) {
+            if (!categoryStatus) return;
+            categoryStatus.textContent = message;
+            categoryStatus.classList.remove('hidden');
+            categoryStatus.classList.remove('text-emerald-600', 'text-rose-600', 'text-slate-500');
+
+            if (tone === 'success') {
+                categoryStatus.classList.add('text-emerald-600');
+            } else if (tone === 'error') {
+                categoryStatus.classList.add('text-rose-600');
+            } else {
+                categoryStatus.classList.add('text-slate-500');
+            }
+        }
+
+        function clearCategoryStatus() {
+            if (!categoryStatus) return;
+            categoryStatus.textContent = '';
+            categoryStatus.classList.add('hidden');
+        }
+
+        function resetCategoryForm() {
+            editingCategoryId = null;
+            categoryNameInput.value = '';
+            categorySaveBtn.textContent = 'Agregar';
+            clearCategoryStatus();
+        }
+
+        function renderCategoryList() {
+            categoryList.innerHTML = '';
+
+            if (categories.length === 0) {
+                const empty = document.createElement('li');
+                empty.className = 'px-4 py-3 text-sm text-slate-500';
+                empty.textContent = 'No hay categorias cargadas.';
+                categoryList.appendChild(empty);
+                return;
+            }
+
+            categories.forEach(cat => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-3 flex items-center justify-between';
+
+                const name = document.createElement('span');
+                name.className = 'text-sm font-medium text-slate-700';
+                name.textContent = cat.nombre;
+
+                const actions = document.createElement('div');
+                actions.className = 'flex gap-2';
+
+                const editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'px-2 py-1 text-xs text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded';
+                editBtn.textContent = 'Editar';
+                editBtn.addEventListener('click', () => startEditCategory(cat.id));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'px-2 py-1 text-xs text-rose-600 hover:text-rose-700 border border-rose-200 rounded';
+                deleteBtn.textContent = 'Borrar';
+                deleteBtn.addEventListener('click', () => deleteCategory(cat.id));
+
+                actions.appendChild(editBtn);
+                actions.appendChild(deleteBtn);
+
+                li.appendChild(name);
+                li.appendChild(actions);
+
+                categoryList.appendChild(li);
+            });
+        }
+
+        function openCategoryModal() {
+            renderCategoryList();
+            categoryModal.classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            categoryModal.classList.add('hidden');
+            resetCategoryForm();
+        }
+
+        function startEditCategory(id) {
+            const cat = categories.find(c => c.id === id);
+            if (!cat) return;
+            editingCategoryId = cat.id;
+            categoryNameInput.value = cat.nombre || '';
+            categorySaveBtn.textContent = 'Guardar';
+            clearCategoryStatus();
+            categoryNameInput.focus();
+        }
+
+        async function saveCategory() {
+            const raw = categoryNameInput.value.trim();
+            if (!raw) {
+                setCategoryStatus('Ingrese un nombre de categoria.', 'error');
+                return;
+            }
+
+            const normalized = raw.replace(/\s+/g, ' ').trim();
+            categorySaveBtn.disabled = true;
+
+            try {
+                let response;
+                if (editingCategoryId) {
+                    response = await fetch(`/api/categorias/${editingCategoryId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nombre: normalized })
+                    });
+                } else {
+                    response = await fetch('/api/categorias', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nombre: normalized })
+                    });
+                }
+
+                if (!response.ok) {
+                    setCategoryStatus('No se pudo guardar la categoria.', 'error');
+                    return;
+                }
+
+                const saved = await response.json();
+
+                if (editingCategoryId) {
+                    categories = categories.map(c => c.id === saved.id ? saved : c);
+                    dbProducts = dbProducts.map(p => p.categoryId === saved.id ? { ...p, categoryId: saved.id } : p);
+                    setCategoryStatus('Categoria actualizada.', 'success');
+                } else {
+                    categories.push(saved);
+                    setCategoryStatus('Categoria creada.', 'success');
+                }
+
+                renderCategoryOptions();
+                renderCategoryList();
+                renderTable();
+                resetCategoryForm();
+            } catch (error) {
+                setCategoryStatus('Error al guardar la categoria.', 'error');
+            } finally {
+                categorySaveBtn.disabled = false;
+            }
+        }
+
+        async function deleteCategory(id) {
+            const used = dbProducts.some(p => p.categoryId === id);
+            if (used) {
+                const ok = confirm('La categoria esta asignada a productos. Si la borras se quitara en esos productos. Continuar?');
+                if (!ok) return;
+            }
+
+            try {
+                const response = await fetch(`/api/categorias/${id}`, { method: 'DELETE' });
+                if (!response.ok) {
+                    setCategoryStatus('No se pudo borrar la categoria.', 'error');
+                    return;
+                }
+
+                categories = categories.filter(c => c.id !== id);
+                dbProducts = dbProducts.map(p => p.categoryId === id ? { ...p, categoryId: null } : p);
+
+                renderCategoryOptions();
+                renderCategoryList();
+                renderTable();
+                resetCategoryForm();
+            } catch (error) {
+                setCategoryStatus('Error al borrar la categoria.', 'error');
+            }
+        }
+
+        // --- GUARDAR / MODIFICAR ---
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const pData = {
+                barcode: barcodeInput.value.trim(),
+                name: nameInput.value.trim(),
+                description: descriptionInput.value.trim(),
+                categoryId: categorySelect.value ? parseInt(categorySelect.value, 10) : null,
+                categoryName: '',
+                unit: unitSelect.value,
+                type: typeSelect.value,
+                cost: parseFloat(costInput.value) || 0,
+                price: parseFloat(priceInput.value),
+                stock: parseFloat(stockInput.value),
+                minStock: parseFloat(minStockInput.value) || 0,
+                active: !!activeCheckbox.checked
+            };
+
+            if (currentEditId) {
+                const index = dbProducts.findIndex(p => p.id === currentEditId);
+                if (index !== -1) {
+                    dbProducts[index] = { ...dbProducts[index], ...pData };
+                }
+            } else {
+                const newId = Math.max(...dbProducts.map(p => p.id), 0) + 1;
+                dbProducts.push({
+                    id: newId,
+                    ...pData
+                });
+            }
+
+            closeDrawer();
+            renderTable();
+        });
+
+        // --- DAR DE BAJA / ALTA ---
+        function toggleStatusFromForm() {
+            if (!currentEditId) return;
+
+            const index = dbProducts.findIndex(p => p.id === currentEditId);
+            if (index !== -1) {
+                const isActive = dbProducts[index].active;
+                const confirmMsg = isActive
+                    ? `Estas seguro de dar de baja el producto "${dbProducts[index].name}"? No aparecera en ventas.`
+                    : `Reactivar el producto "${dbProducts[index].name}"?`;
+
+                if (confirm(confirmMsg)) {
+                    dbProducts[index].active = !isActive;
+                    closeDrawer();
+                    renderTable();
+                }
+            }
+        }
+
+        // --- EVENTOS ---
+        searchInput.addEventListener('input', renderTable);
+        filterCategory.addEventListener('change', renderTable);
+        filterStatus.addEventListener('change', renderTable);
+
+        if (offLookupBtn) offLookupBtn.addEventListener('click', lookupOpenFoodFacts);
+        barcodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lookupOpenFoodFacts();
+            }
+        });
+        barcodeInput.addEventListener('input', scheduleOpenFoodFactsLookup);
+
+        if (categoryManageBtn) categoryManageBtn.addEventListener('click', openCategoryModal);
+        if (categorySaveBtn) categorySaveBtn.addEventListener('click', saveCategory);
+        if (categoryCancelBtn) categoryCancelBtn.addEventListener('click', closeCategoryModal);
+
+        document.addEventListener('keydown', (e) => {
+            if (!drawer.classList.contains('drawer-open')) return;
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+
+            if (e.key === 'Enter') {
+                if (scanBuffer.length >= 6) {
+                    barcodeInput.value = scanBuffer;
+                    barcodeInput.focus();
+                    scheduleOpenFoodFactsLookup();
+                }
+                scanBuffer = '';
+                return;
+            }
+
+            if (!/^[0-9]$/.test(e.key)) return;
+
+            scanBuffer += e.key;
+            if (scanTimer) clearTimeout(scanTimer);
+            scanTimer = setTimeout(() => {
+                scanBuffer = '';
+            }, 200);
+        });
+
+        // Inicializar
+        window.onload = () => {
+            renderCategoryOptions();
+            renderTable();
+            loadCategories();
+        };
+
+    </script>
+</body>
+</html>
