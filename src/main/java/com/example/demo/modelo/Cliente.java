@@ -16,7 +16,7 @@ import lombok.Setter;
 @DiscriminatorValue("CLIENTE")
 public class Cliente extends Usuario {
 
-	@Column(nullable = false, length = 120)
+	@Column(length = 120)
 	private String nombre;
 
 	@Column(length = 120)

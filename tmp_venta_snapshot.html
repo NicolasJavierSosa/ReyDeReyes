@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venta</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+  <header class="bg-slate-900 text-white p-4 flex justify-between">
+    <div class="font-bold">Rey de Reyes POS</div>
+    <nav class="space-x-3 text-sm">
+      <a href="/venta" class="text-emerald-400">Venta</a>
+      <a href="/tesoreria">Tesoreria</a>
+      <a href="/inventario">Inventario</a>
+    </nav>
+  </header>
+
+  <main class="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <section class="lg:col-span-2 bg-white rounded border p-4">
+      <form id="product-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-semibold mb-1" for="codigo">Codigo de barras</label>
+          <input id="codigo" class="w-full border rounded px-3 py-2" placeholder="Escanear codigo" autofocus autocomplete="off">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-1" for="cantidad">Cantidad</label>
+          <input id="cantidad" type="number" min="1" value="1" class="w-full border rounded px-3 py-2 text-center">
+        </div>
+        <button type="submit" class="bg-slate-800 text-white px-4 py-2 rounded">Agregar</button>
+      </form>
+
+      <div class="mt-4 overflow-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b text-left">
+              <th class="py-2">Codigo</th>
+              <th class="py-2">Descripcion</th>
+              <th class="py-2 text-center">Cant</th>
+              <th class="py-2 text-right">Precio</th>
+              <th class="py-2 text-right">Subtotal</th>
+              <th class="py-2 text-right">Accion</th>
+            </tr>
+          </thead>
+          <tbody id="cart-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bg-white rounded border p-4 flex flex-col gap-4">
+      <div class="bg-slate-900 text-emerald-400 rounded p-4 text-center">
+        <div class="text-xs text-slate-300">Ultimo producto</div>
+        <div id="last-item-name" class="text-white font-semibold">---</div>
+        <div id="last-item-price" class="text-3xl font-bold">$0.00</div>
+      </div>
+
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span>Subtotal</span><span id="summary-subtotal">$0.00</span></div>
+        <div class="flex justify-between"><span>Descuento</span><span id="summary-discount">$0.00</span></div>
+        <div class="flex justify-between"><span>Items</span><span id="summary-items">0</span></div>
+      </div>
+
+      <div class="border rounded p-3 text-right">
+        <div class="text-xs text-slate-500">TOTAL</div>
+        <div id="summary-total" class="text-3xl font-bold">$0.00</div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 mt-auto">
+        <button type="button" id="cancel-sale" class="border rounded px-3 py-2">Cancelar</button>
+        <button type="button" id="checkout-button" class="bg-emerald-500 text-white rounded px-3 py-2">Cobrar (F12)</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="payment-overlay" class="fixed inset-0 bg-black/40 hidden"></div>
+  <div id="payment-modal" class="fixed inset-0 hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded border p-4 space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-bold">Finalizar compra</h2>
+        <button type="button" id="close-payment-modal" class="text-slate-500">X</button>
+      </div>
+
+      <form id="payment-form" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold mb-1">Metodo de pago</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="border rounded p-2 flex gap-2"><input type="radio" name="payment-method" value="EFECTIVO" checked> Efectivo</label>
+            <label class="border rounded p-2 flex gap-2"><input type="radio" name="payment-method" value="TRANSFERENCIA"> Transferencia</label>
+          </div>
+        </div>
+
+        <div class="flex justify-between border rounded p-2 bg-slate-50">
+          <span>Total</span><span id="payment-total" class="font-semibold">$0.00</span>
+        </div>
+
+        <div id="cash-section" class="space-y-2">
+          <label class="block text-xs font-semibold" for="amount-received">Billete / monto entregado</label>
+          <input id="amount-received" type="number" min="0" step="0.01" class="w-full border rounded px-3 py-2" placeholder="0.00">
+          <div class="flex justify-between border rounded p-2 bg-emerald-50">
+            <span>Cambio</span><span id="payment-change" class="font-semibold">$0.00</span>
+          </div>
+        </div>
+
+        <p id="payment-error" class="text-rose-600 text-sm hidden"></p>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" id="cancel-payment" class="border rounded px-3 py-2">Cancelar</button>
+          <button type="submit" id="confirm-payment" class="bg-emerald-500 text-white rounded px-3 py-2">Finalizar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const productForm = document.getElementById('product-form');
+    const codigoInput = document.getElementById('codigo');
+    const cantidadInput = document.getElementById('cantidad');
+    const cartBody = document.getElementById('cart-body');
+    const cancelSaleButton = document.getElementById('cancel-sale');
+    const checkoutButton = document.getElementById('checkout-button');
+
+    const summarySubtotal = document.getElementById('summary-subtotal');
+    const summaryDiscount = document.getElementById('summary-discount');
+    const summaryItems = document.getElementById('summary-items');
+    const summaryTotal = document.getElementById('summary-total');
+    const lastItemName = document.getElementById('last-item-name');
+    const lastItemPrice = document.getElementById('last-item-price');
+
+    const paymentOverlay = document.getElementById('payment-overlay');
+    const paymentModal = document.getElementById('payment-modal');
+    const paymentForm = document.getElementById('payment-form');
+    const paymentTotal = document.getElementById('payment-total');
+    const cashSection = document.getElementById('cash-section');
+    const amountReceivedInput = document.getElementById('amount-received');
+    const paymentChange = document.getElementById('payment-change');
+    const paymentError = document.getElementById('payment-error');
+    const closePaymentModalButton = document.getElementById('close-payment-modal');
+    const cancelPaymentButton = document.getElementById('cancel-payment');
+    const confirmPaymentButton = document.getElementById('confirm-payment');
+
+    const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+    const cart = new Map();
+    let discount = 0;
+
+    function roundMoney(value) {
+      return Math.round((value + Number.EPSILON) * 100) / 100;
+    }
+
+    function roundQty(value) {
+      return Math.round((value + Number.EPSILON) * 1000) / 1000;
+    }
+
+    function formatMoney(value) {
+      return moneyFormatter.format(roundMoney(Number(value) || 0));
+    }
+
+    function formatQty(value) {
+      const qty = Number(value) || 0;
+      return Number.isInteger(qty) ? String(qty) : qty.toFixed(3).replace(/\.?0+$/, '');
+    }
+
+    function parsePositiveNumber(raw) {
+      const value = Number(raw);
+      return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    function getItemsArray() {
+      return Array.from(cart.values());
+    }
+
+    function calculateSubtotal() {
+      return roundMoney(getItemsArray().reduce((acc, item) => acc + item.price * item.quantity, 0));
+    }
+
+    function calculateItems() {
+      return roundQty(getItemsArray().reduce((acc, item) => acc + item.quantity, 0));
+    }
+
+    function calculateTotal() {
+      const subtotal = calculateSubtotal();
+      return roundMoney(Math.max(subtotal - discount, 0));
+    }
+
+    function updateSummary() {
+      const subtotal = calculateSubtotal();
+      const total = calculateTotal();
+      summarySubtotal.textContent = formatMoney(subtotal);
+      summaryDiscount.textContent = formatMoney(discount);
+      summaryItems.textContent = formatQty(calculateItems());
+      summaryTotal.textContent = formatMoney(total);
+    }
+
+    function renderCart() {
+      cartBody.innerHTML = '';
+      for (const item of getItemsArray()) {
+        const subtotal = roundMoney(item.price * item.quantity);
+        const row = document.createElement('tr');
+        row.className = 'border-b';
+        row.innerHTML = `
+          <td class="py-2">${item.barcode}</td>
+          <td class="py-2">${item.name}</td>
+          <td class="py-2 text-center">${formatQty(item.quantity)}</td>
+          <td class="py-2 text-right">${formatMoney(item.price)}</td>
+          <td class="py-2 text-right">${formatMoney(subtotal)}</td>
+          <td class="py-2 text-right">
+            <button type="button" class="text-rose-600 text-xs" data-remove="${item.barcode}">Quitar</button>
+          </td>
+        `;
+        cartBody.appendChild(row);
+      }
+      updateSummary();
+    }
+
+    function clearSale() {
+      cart.clear();
+      discount = 0;
+      lastItemName.textContent = '---';
+      lastItemPrice.textContent = formatMoney(0);
+      renderCart();
+      closePaymentModal();
+      paymentForm.reset();
+      setPaymentMethodUi();
+      codigoInput.focus();
+    }
+
+    async function fetchProductByBarcode(barcode) {
+      const response = await fetch(`/api/productos/venta/codigo/${encodeURIComponent(barcode)}`);
+      if (!response.ok) {
+        let message = 'No se pudo obtener el producto';
+        try {
+          const error = await response.json();
+          if (error && error.message) {
+            message = error.message;
+          }
+        } catch (_) {
+          // Ignorar parseo de error
+        }
+        throw new Error(message);
+      }
+      return response.json();
+    }
+
+    async function addProduct(barcode, quantity) {
+      const product = await fetchProductByBarcode(barcode);
+      const key = product.barcode;
+      const existing = cart.get(key);
+      if (existing) {
+        existing.quantity = roundQty(existing.quantity + quantity);
+      } else {
+        cart.set(key, {
+          id: product.id,
+          barcode: product.barcode,
+          name: product.name,
+          price: Number(product.price) || 0,
+          quantity: roundQty(quantity),
+        });
+      }
+
+      lastItemName.textContent = product.name;
+      lastItemPrice.textContent = formatMoney(product.price);
+      renderCart();
+    }
+
+    function openPaymentModal() {
+      const total = calculateTotal();
+      if (getItemsArray().length === 0 || total <= 0) {
+        alert('No hay productos para cobrar');
+        return;
+      }
+
+      paymentTotal.textContent = formatMoney(total);
+      paymentError.classList.add('hidden');
+      paymentError.textContent = '';
+      paymentOverlay.classList.remove('hidden');
+      paymentModal.classList.remove('hidden');
+      paymentModal.classList.add('flex');
+      setPaymentMethodUi();
+    }
+
+    function closePaymentModal() {
+      paymentOverlay.classList.add('hidden');
+      paymentModal.classList.add('hidden');
+      paymentModal.classList.remove('flex');
+      paymentError.classList.add('hidden');
+      paymentError.textContent = '';
+    }
+
+    function getSelectedPaymentMethod() {
+      const selected = document.querySelector('input[name="payment-method"]:checked');
+      return selected ? selected.value : 'EFECTIVO';
+    }
+
+    function setPaymentMethodUi() {
+      const method = getSelectedPaymentMethod();
+      const isCash = method === 'EFECTIVO';
+      cashSection.classList.toggle('hidden', !isCash);
+
+      if (isCash) {
+        amountReceivedInput.focus();
+      } else {
+        amountReceivedInput.value = '';
+      }
+      updateChange();
+    }
+
+    function updateChange() {
+      const method = getSelectedPaymentMethod();
+      if (method !== 'EFECTIVO') {
+        paymentChange.textContent = formatMoney(0);
+        return;
+      }
+
+      const total = calculateTotal();
+      const amountReceived = Number(amountReceivedInput.value) || 0;
+      const change = roundMoney(amountReceived - total);
+      paymentChange.textContent = formatMoney(Math.max(change, 0));
+    }
+
+    async function checkout() {
+      const method = getSelectedPaymentMethod();
+      const total = calculateTotal();
+      const payload = {
+        items: getItemsArray().map((item) => ({
+          barcode: item.barcode,
+          quantity: roundQty(item.quantity),
+        })),
+        discount: roundMoney(discount),
+        payment: {
+          method,
+          amountReceived: null,
+        },
+      };
+
+      if (method === 'EFECTIVO') {
+        const amountReceived = parsePositiveNumber(amountReceivedInput.value);
+        if (amountReceived === null) {
+          throw new Error('Ingrese el monto entregado');
+        }
+        if (amountReceived < total) {
+          throw new Error('El monto entregado es menor al total');
+        }
+        payload.payment.amountReceived = roundMoney(amountReceived);
+      }
+
+      const response = await fetch('/api/ventas/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let message = 'No se pudo finalizar la compra';
+        try {
+          const error = await response.json();
+          if (error && error.message) {
+            message = error.message;
+          }
+        } catch (_) {
+          // Ignorar parseo de error
+        }
+        throw new Error(message);
+      }
+
+      return response.json();
+    }
+
+    productForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const barcode = codigoInput.value.trim();
+      const quantity = parsePositiveNumber(cantidadInput.value);
+
+      if (!barcode) {
+        alert('Ingrese un codigo de barra');
+        codigoInput.focus();
+        return;
+      }
+      if (quantity === null) {
+        alert('La cantidad debe ser mayor a cero');
+        cantidadInput.focus();
+        return;
+      }
+
+      try {
+        await addProduct(barcode, quantity);
+        codigoInput.value = '';
+        cantidadInput.value = '1';
+        codigoInput.focus();
+      } catch (error) {
+        alert(error.message);
+        codigoInput.select();
+      }
+    });
+
+    cartBody.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('button[data-remove]');
+      if (!removeButton) {
+        return;
+      }
+
+      const barcode = removeButton.dataset.remove;
+      if (barcode) {
+        cart.delete(barcode);
+        renderCart();
+      }
+    });
+
+    checkoutButton.addEventListener('click', openPaymentModal);
+    cancelSaleButton.addEventListener('click', () => {
+      if (getItemsArray().length === 0) {
+        return;
+      }
+      if (confirm('Se cancelara la venta actual. Desea continuar?')) {
+        clearSale();
+      }
+    });
+
+    closePaymentModalButton.addEventListener('click', closePaymentModal);
+    cancelPaymentButton.addEventListener('click', closePaymentModal);
+    paymentOverlay.addEventListener('click', closePaymentModal);
+
+    document.querySelectorAll('input[name="payment-method"]').forEach((radio) => {
+      radio.addEventListener('change', setPaymentMethodUi);
+    });
+    amountReceivedInput.addEventListener('input', updateChange);
+
+    paymentForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      paymentError.classList.add('hidden');
+      paymentError.textContent = '';
+      confirmPaymentButton.disabled = true;
+
+      try {
+        const response = await checkout();
+        alert(`Venta registrada. Ticket ${response.ticket}.`);
+        clearSale();
+      } catch (error) {
+        paymentError.textContent = error.message;
+        paymentError.classList.remove('hidden');
+      } finally {
+        confirmPaymentButton.disabled = false;
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'F12') {
+        event.preventDefault();
+        openPaymentModal();
+      } else if (event.key === 'Escape') {
+        closePaymentModal();
+      }
+    });
+
+    renderCart();
+    setPaymentMethodUi();
+  </script>
+</body>
+</html>
+

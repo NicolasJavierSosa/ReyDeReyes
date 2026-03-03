@@ -275,38 +275,28 @@
 
     <!-- Script Lógica -->
     <script>
-        // --- CATEGORÍAS POR TIPO ---
         const categories = {
             ingreso: [
                 { id: 'cambio_inicial', name: 'Cambio Inicial / Base' },
-                { id: 'ingreso_dueño', name: 'Aporte Dueño' },
-                { id: 'cobro_cta_cte', name: 'Cobro de Fila / Cta. Cte.' },
+                { id: 'ingreso_dueno', name: 'Aporte Dueno' },
+                { id: 'cobro_cta_cte', name: 'Cobro de Cuenta Corriente' },
                 { id: 'otros_ingresos', name: 'Otros Ingresos' }
             ],
             egreso: [
                 { id: 'pago_proveedor', name: 'Pago a Proveedor' },
-                { id: 'retiro_dueño', name: 'Retiro Dueño / Socios' },
-                { id: 'gastos_limpieza', name: 'Insumos Limpieza/Librería' },
-                { id: 'pago_servicios', name: 'Pago Servicios (Luz, Internet)' },
-                { id: 'otros_gastos', name: 'Otros Gastos (Varios)' }
+                { id: 'retiro_dueno', name: 'Retiro Dueno / Socios' },
+                { id: 'gastos_limpieza', name: 'Insumos de Limpieza / Libreria' },
+                { id: 'pago_servicios', name: 'Pago de Servicios' },
+                { id: 'otros_gastos', name: 'Otros Gastos' }
             ]
         };
 
-        // --- BASE DE DATOS SIMULADA (MOVIMIENTOS DEL TURNO) ---
-        let dbMovements = [
-            { id: 1, time: '08:00', type: 'ingreso', category: 'cambio_inicial', detail: 'Efectivo base para cambio', user: 'Admin', amount: 15000.00 },
-            { id: 2, time: '08:15', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0001', user: 'Admin', amount: 4500.00 },
-            { id: 3, time: '09:30', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0002', user: 'Admin', amount: 1200.00 },
-            { id: 4, time: '10:00', type: 'egreso', category: 'pago_proveedor', detail: 'Coca Cola Femsa. Remito #124', user: 'Admin', amount: -8500.00 },
-            { id: 5, time: '10:45', type: 'venta', category: 'venta_sistema', detail: 'Ticket #0003', user: 'Admin', amount: 3200.00 },
-            { id: 6, time: '11:15', type: 'egreso', category: 'retiro_dueño', detail: 'Retiro parcial de caja', user: 'Admin', amount: -5000.00 }
-        ];
-
-        // Elementos DOM
         const tableBody = document.getElementById('treasury-body');
         const searchInput = document.getElementById('search-input');
         const filterType = document.getElementById('filter-type');
-        
+        const movementCount = document.getElementById('movement-count');
+        const filteredTotal = document.getElementById('filtered-total');
+
         const kpiIncomes = document.getElementById('kpi-incomes');
         const kpiSales = document.getElementById('kpi-sales');
         const kpiExpenses = document.getElementById('kpi-expenses');
@@ -316,109 +306,164 @@
         const overlay = document.getElementById('drawer-overlay');
         const form = document.getElementById('movement-form');
         const categorySelect = document.getElementById('form-category');
+        const amountInput = document.getElementById('form-amount');
+        const detailInput = document.getElementById('form-detail');
+        const receiptInput = document.getElementById('form-receipt');
 
-        // Formateadores
-        const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
-        const getCategoryName = (type, catId) => {
-            if(type === 'venta') return 'Venta (Sistema)';
-            const list = categories[type] || [];
-            const cat = list.find(c => c.id === catId);
-            return cat ? cat.name : catId;
-        };
+        const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 
-        // --- ACTUALIZAR KPIS ---
-        function updateKPIs() {
-            let totalIncomes = 0; // Manuales
-            let totalSales = 0; // Ventas automáticas
-            let totalExpenses = 0; // Retiros
+        let movements = [];
 
-            dbMovements.forEach(m => {
-                if(m.type === 'ingreso') totalIncomes += m.amount;
-                else if(m.type === 'venta') totalSales += m.amount;
-                else if(m.type === 'egreso') totalExpenses += Math.abs(m.amount);
-            });
-
-            const totalInDrawer = totalIncomes + totalSales - totalExpenses;
-
-            kpiIncomes.textContent = formatMoney(totalIncomes);
-            kpiSales.textContent = formatMoney(totalSales);
-            kpiExpenses.textContent = formatMoney(totalExpenses);
-            kpiTotal.textContent = formatMoney(totalInDrawer);
+        function formatMoney(amount) {
+            return moneyFormatter.format(Number(amount) || 0);
         }
 
-        // --- RENDERIZAR TABLA ---
+        function normalizeType(type) {
+            return (type || '').toLowerCase();
+        }
+
+        function escapeHtml(value) {
+            const raw = value == null ? '' : String(value);
+            return raw
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function formatTime(dateTime) {
+            if (!dateTime) {
+                return '--:--';
+            }
+            const date = new Date(dateTime);
+            if (Number.isNaN(date.getTime())) {
+                return '--:--';
+            }
+            return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function getTypeUi(type) {
+            if (type === 'ingreso') {
+                return {
+                    badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Ingreso</span>',
+                    amountClass: 'text-blue-600 font-semibold',
+                    icon: '<i class="fa-solid fa-arrow-turn-up text-blue-400 mr-2 text-xs"></i>'
+                };
+            }
+            if (type === 'egreso') {
+                return {
+                    badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-700">Egreso</span>',
+                    amountClass: 'text-rose-600 font-semibold',
+                    icon: '<i class="fa-solid fa-arrow-turn-down text-rose-400 mr-2 text-xs"></i>'
+                };
+            }
+            return {
+                badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-100 text-emerald-700">Venta</span>',
+                amountClass: 'text-emerald-600 font-bold',
+                icon: '<i class="fa-solid fa-cart-shopping text-emerald-400 mr-2 text-xs"></i>'
+            };
+        }
+
+        async function apiFetch(url, options = {}) {
+            const response = await fetch(url, options);
+            if (response.ok) {
+                if (response.status === 204) {
+                    return null;
+                }
+                return response.json();
+            }
+
+            let message = 'No se pudo completar la operacion';
+            try {
+                const error = await response.json();
+                if (error && error.message) {
+                    message = error.message;
+                }
+            } catch (_) {
+                // Sin detalle JSON
+            }
+            throw new Error(message);
+        }
+
         function renderTable() {
             const search = searchInput.value.toLowerCase();
-            const typeFilter = filterType.value;
+            const selectedType = filterType.value;
 
-            // Filtrar
-            const filtered = dbMovements.filter(m => {
-                const matchSearch = m.detail.toLowerCase().includes(search) || getCategoryName(m.type, m.category).toLowerCase().includes(search);
-                const matchType = typeFilter === 'all' || m.type === typeFilter;
-                return matchSearch && matchType;
+            const filtered = movements.filter((movement) => {
+                const type = normalizeType(movement.type);
+                const searchable = `${movement.concept || ''} ${movement.detail || ''} ${movement.user || ''}`.toLowerCase();
+                const matchesSearch = searchable.includes(search);
+                const matchesType = selectedType === 'all' || type === selectedType;
+                return matchesSearch && matchesType;
             });
 
-            // Ordenar por ID desc (más nuevos arriba) para visualización
-            const sorted = [...filtered].sort((a,b) => b.id - a.id);
-
             tableBody.innerHTML = '';
-            let filteredSum = 0;
+            let total = 0;
 
-            sorted.forEach(m => {
-                filteredSum += m.amount;
+            filtered.forEach((movement) => {
+                const type = normalizeType(movement.type);
+                const ui = getTypeUi(type);
+                const amount = Number(movement.amount) || 0;
+                total += amount;
+
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition-colors group';
-
-                // Badges de Tipo
-                let typeBadge = '';
-                let amountColor = '';
-                let icon = '';
-
-                if (m.type === 'ingreso') {
-                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Ingreso</span>`;
-                    amountColor = 'text-blue-600 font-semibold';
-                    icon = '<i class="fa-solid fa-arrow-turn-up text-blue-400 mr-2 text-xs"></i>';
-                } else if (m.type === 'venta') {
-                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-100 text-emerald-700">Venta</span>`;
-                    amountColor = 'text-emerald-600 font-bold';
-                    icon = '<i class="fa-solid fa-cart-shopping text-emerald-400 mr-2 text-xs"></i>';
-                } else {
-                    typeBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-700">Egreso</span>`;
-                    amountColor = 'text-rose-600 font-semibold';
-                    icon = '<i class="fa-solid fa-arrow-turn-down text-rose-400 mr-2 text-xs"></i>';
-                }
-
                 tr.innerHTML = `
-                    <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${m.time}</td>
-                    <td class="py-3 px-6 border-b border-slate-100">${typeBadge}</td>
+                    <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${formatTime(movement.dateTime)}</td>
+                    <td class="py-3 px-6 border-b border-slate-100">${ui.badge}</td>
                     <td class="py-3 px-6 text-sm text-slate-800 border-b border-slate-100">
-                        <div class="font-medium">${icon}${getCategoryName(m.type, m.category)}</div>
-                        ${m.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${m.detail}</div>` : ''}
+                        <div class="font-medium">${ui.icon}${escapeHtml(movement.concept || '-')}</div>
+                        ${movement.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${escapeHtml(movement.detail)}</div>` : ''}
                     </td>
-                    <td class="py-3 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-circle-user mr-1"></i> ${m.user}</td>
-                    <td class="py-3 px-6 text-sm border-b border-slate-100 text-right ${amountColor}">${m.amount > 0 ? '+' : ''}${formatMoney(m.amount)}</td>
+                    <td class="py-3 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-circle-user mr-1"></i> ${escapeHtml(movement.user || '-')}</td>
+                    <td class="py-3 px-6 text-sm border-b border-slate-100 text-right ${ui.amountClass}">${amount > 0 ? '+' : ''}${formatMoney(amount)}</td>
                     <td class="py-3 px-6 text-center border-b border-slate-100">
-                        ${m.type !== 'venta' ? `
-                        <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Anular Movimiento" onclick="deleteMovement(${m.id})">
+                        ${movement.deletable ? `
+                        <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Anular Movimiento" onclick="deleteMovement(${movement.id})">
                             <i class="fa-solid fa-trash-can"></i>
-                        </button>` : `<span class="text-slate-300 text-xs" title="Las ventas se anulan desde su módulo">-</span>`}
+                        </button>` : '<span class="text-slate-300 text-xs" title="Las ventas se eliminan desde su modulo">-</span>'}
                     </td>
                 `;
                 tableBody.appendChild(tr);
             });
 
-            document.getElementById('movement-count').textContent = `Mostrando ${sorted.length} movimientos`;
-            document.getElementById('filtered-total').textContent = formatMoney(filteredSum);
-            
-            updateKPIs();
+            movementCount.textContent = `Mostrando ${filtered.length} movimientos`;
+            filteredTotal.textContent = formatMoney(total);
         }
 
-        // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
+        async function loadMovements() {
+            movements = await apiFetch('/api/tesoreria/movimientos');
+        }
+
+        async function loadSummary() {
+            const summary = await apiFetch('/api/tesoreria/resumen');
+            kpiIncomes.textContent = formatMoney(summary.incomes);
+            kpiSales.textContent = formatMoney(summary.sales);
+            kpiExpenses.textContent = formatMoney(summary.expenses);
+            kpiTotal.textContent = formatMoney(summary.cashInDrawer);
+        }
+
+        async function refreshData() {
+            await Promise.all([loadMovements(), loadSummary()]);
+            renderTable();
+        }
+
+        function populateCategories(type) {
+            categorySelect.innerHTML = '<option value="" disabled selected>Seleccione la razon/concepto...</option>';
+            const list = categories[type] || [];
+            list.forEach((category) => {
+                const option = document.createElement('option');
+                option.value = category.id;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+        }
+
         function openDrawer(defaultType) {
             form.reset();
-            
-            // Setear el radio button correspondiente
-            if(defaultType === 'income') {
+
+            if (defaultType === 'income') {
                 document.getElementById('type-income').checked = true;
                 populateCategories('ingreso');
             } else {
@@ -426,14 +471,11 @@
                 populateCategories('egreso');
             }
 
-            // Animar entrada
             overlay.classList.remove('hidden');
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             drawer.classList.remove('drawer-closed');
             drawer.classList.add('drawer-open');
-            
-            // Foco en monto
-            setTimeout(() => document.getElementById('form-amount').focus(), 300);
+            setTimeout(() => amountInput.focus(), 300);
         }
 
         function closeDrawer() {
@@ -443,72 +485,81 @@
             setTimeout(() => overlay.classList.add('hidden'), 300);
         }
 
-        // Manejar cambio dinámico de categorías al cambiar Ingreso/Egreso
-        document.querySelectorAll('input[name="mov_type"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                populateCategories(e.target.value);
+        async function deleteMovement(id) {
+            if (!confirm('Esta seguro de eliminar este movimiento manual de caja?')) {
+                return;
+            }
+
+            try {
+                await apiFetch(`/api/tesoreria/movimientos/${id}`, { method: 'DELETE' });
+                await refreshData();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        document.querySelectorAll('input[name="mov_type"]').forEach((radio) => {
+            radio.addEventListener('change', (event) => {
+                populateCategories(event.target.value);
             });
         });
 
-        function populateCategories(type) {
-            categorySelect.innerHTML = '<option value="" disabled selected>Seleccione la razón/concepto...</option>';
-            const list = categories[type];
-            list.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.id;
-                opt.textContent = cat.name;
-                categorySelect.appendChild(opt);
-            });
-        }
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-        // --- GUARDAR MOVIMIENTO ---
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
             const type = document.querySelector('input[name="mov_type"]:checked').value;
-            let amount = parseFloat(document.getElementById('form-amount').value);
-            const category = document.getElementById('form-category').value;
-            const detail = document.getElementById('form-detail').value;
-
-            // Si es egreso, internamente lo manejamos como negativo
-            if(type === 'egreso') {
-                amount = -Math.abs(amount);
+            const amount = Number(amountInput.value);
+            if (!Number.isFinite(amount) || amount <= 0) {
+                alert('El monto debe ser mayor a cero');
+                amountInput.focus();
+                return;
             }
 
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const conceptOption = categorySelect.options[categorySelect.selectedIndex];
+            const concept = conceptOption ? conceptOption.textContent.trim() : '';
+            if (!concept) {
+                alert('Seleccione una categoria');
+                categorySelect.focus();
+                return;
+            }
 
-            const newId = Math.max(...dbMovements.map(m => m.id), 0) + 1;
-            
-            dbMovements.push({
-                id: newId,
-                time: timeStr,
-                type: type,
-                category: category,
-                detail: detail,
-                user: 'Admin', // Normalmente saldría de la sesión
-                amount: amount
-            });
+            const detail = detailInput.value.trim();
+            const receipt = receiptInput.value.trim();
+            const fullDetail = [detail, receipt ? `Comprobante: ${receipt}` : '']
+                .filter((value) => value.length > 0)
+                .join(' | ');
 
-            closeDrawer();
-            renderTable();
+            const payload = {
+                type: type === 'ingreso' ? 'INGRESO' : 'EGRESO',
+                concept,
+                detail: fullDetail,
+                amount
+            };
+
+            try {
+                await apiFetch('/api/tesoreria/movimientos/manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                closeDrawer();
+                await refreshData();
+            } catch (error) {
+                alert(error.message);
+            }
         });
 
-        // --- ELIMINAR/ANULAR MOVIMIENTO MANUAL ---
-        function deleteMovement(id) {
-            if(confirm('¿Está seguro de anular/eliminar este movimiento manual de caja?')) {
-                dbMovements = dbMovements.filter(m => m.id !== id);
-                renderTable();
-            }
-        }
-
-        // --- EVENTOS BUSCADOR REAL-TIME ---
         searchInput.addEventListener('input', renderTable);
         filterType.addEventListener('change', renderTable);
 
-        // Inicializar
-        window.onload = renderTable;
-
+        (async () => {
+            populateCategories('ingreso');
+            try {
+                await refreshData();
+            } catch (error) {
+                alert(error.message);
+            }
+        })();
     </script>
 </body>
 </html>
