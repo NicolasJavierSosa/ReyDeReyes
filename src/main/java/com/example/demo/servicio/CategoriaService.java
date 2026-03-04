@@ -21,6 +21,19 @@ public class CategoriaService {
 		return categoriaRepository.findAllByActivaTrueOrderByNombreAsc();
 	}
 
+	public List<Categoria> listarPorEstado(String status) {
+		if (status == null || status.isBlank() || status.equalsIgnoreCase("active")) {
+			return categoriaRepository.findAllByActivaTrueOrderByNombreAsc();
+		}
+		if (status.equalsIgnoreCase("inactive")) {
+			return categoriaRepository.findAllByActivaOrderByNombreAsc(false);
+		}
+		if (status.equalsIgnoreCase("all")) {
+			return categoriaRepository.findAllByOrderByNombreAsc();
+		}
+		throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filtro invalido");
+	}
+
 	public Categoria crear(CategoriaRequest request) {
 		String nombre = normalizeNombre(request.nombre());
 		if (categoriaRepository.existsByNombreIgnoreCase(nombre)) {
@@ -52,6 +65,13 @@ public class CategoriaService {
 		Categoria categoria = categoriaRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria no encontrada"));
 		categoria.setActiva(false);
+		categoriaRepository.save(categoria);
+	}
+
+	public void cambiarEstado(Long id, boolean activa) {
+		Categoria categoria = categoriaRepository.findById(id)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria no encontrada"));
+		categoria.setActiva(activa);
 		categoriaRepository.save(categoria);
 	}
 

@@ -16,6 +16,9 @@ import lombok.Setter;
 @DiscriminatorValue("CLIENTE")
 public class Cliente extends Usuario {
 
+	@Column(length = 40, unique = true)
+	private String documento;
+
 	@Column(length = 120)
 	private String nombre;
 
@@ -30,4 +33,7 @@ public class Cliente extends Usuario {
 
 	@Column(length = 255)
 	private String direccion;
+
+	@Column(length = 255)
+	private String notas;
 }

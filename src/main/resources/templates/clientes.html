@@ -101,6 +101,19 @@
             </div>
         </div>
 
+        <!-- Link Google Forms -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-end gap-4">
+            <div class="flex-1">
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Link Formulario Clientes</label>
+                <input type="url" id="form-link-input" placeholder="https://..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                <p class="text-xs text-slate-400 mt-2">Pegalo aqui para que el sistema sepa de donde vienen los registros.</p>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <button id="form-link-save" type="button" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium">Guardar link</button>
+                <span id="form-link-status" class="text-xs text-slate-500"></span>
+            </div>
+        </div>
+
         <!-- Barra de Herramientas -->
         <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
             
@@ -112,7 +125,7 @@
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
                         </div>
-                        <input type="text" id="search-input" placeholder="Nombre, DNI, teléfono o email..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        <input type="text" id="search-input" placeholder="Nombre, apellido, telefono o email..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                     </div>
                 </div>
 
@@ -140,10 +153,10 @@
                 <table class="w-full text-left border-collapse whitespace-nowrap">
                     <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
                         <tr>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">DNI / CUIT</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Nombre Completo</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Teléfono</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Correo Electrónico</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Nombre</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Apellido</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Telefono</th>
+                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Correo Electronico</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Estado</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-24">Acciones</th>
                         </tr>
@@ -182,66 +195,45 @@
         <div class="p-6 flex-1 overflow-y-auto">
             <form id="customer-form" class="flex flex-col gap-5">
                 <input type="hidden" id="form-id">
-                
-                <!-- DNI / CUIT -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">DNI / CUIT *</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-regular fa-id-card text-slate-400"></i>
-                        </div>
-                        <input type="text" id="form-document" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: 35123456">
-                    </div>
-                </div>
 
-                <!-- Nombre -->
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre Completo *</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre *</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-regular fa-user text-slate-400"></i>
                         </div>
-                        <input type="text" id="form-name" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Juan Pérez">
+                        <input type="text" id="form-first-name" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Juan">
                     </div>
                 </div>
 
-                <!-- Teléfono -->
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Teléfono</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Apellido *</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa-regular fa-user text-slate-400"></i>
+                        </div>
+                        <input type="text" id="form-last-name" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Perez">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Telefono *</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-solid fa-phone text-slate-400"></i>
                         </div>
-                        <input type="text" id="form-phone" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: +54 9 376 4123456">
+                        <input type="text" id="form-phone" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: +54 9 376 4123456">
                     </div>
                 </div>
 
-                <!-- Email -->
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Correo Electronico *</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fa-regular fa-envelope text-slate-400"></i>
                         </div>
-                        <input type="email" id="form-email" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="ejemplo@correo.com">
+                        <input type="email" id="form-email" required class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="ejemplo@correo.com">
                     </div>
-                </div>
-
-                <!-- Dirección -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Dirección (Opcional)</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 pt-3 pointer-events-none">
-                            <i class="fa-solid fa-location-dot text-slate-400"></i>
-                        </div>
-                        <textarea id="form-address" rows="2" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none" placeholder="Calle y número, Barrio..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Notas -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Notas Internas</label>
-                    <textarea id="form-notes" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none" placeholder="Tiene cuenta corriente, es mayorista, etc."></textarea>
                 </div>
 
             </form>
@@ -264,23 +256,15 @@
     </div>
 
     <!-- Script Lógica -->
-    <script>
-        // --- BASE DE DATOS SIMULADA ---
-        let dbCustomers = [
-            { id: 1, document: '35123456', name: 'Martín Rodríguez', phone: '+54 9 376 4112233', email: 'martin.r@email.com', address: 'Av. Corrientes 1234, Posadas', status: 'active', notes: 'Cliente frecuente' },
-            { id: 2, document: '28987654', name: 'Laura Gómez', phone: '+54 9 376 4998877', email: 'laura.gomez@email.com', address: 'Calle Bolívar 432', status: 'active', notes: 'Tiene cuenta corriente' },
-            { id: 3, document: '20-41555666-8', name: 'Kiosco El Sol (Carlos Paz)', phone: '0376 4445555', email: 'contacto@elsol.com', address: 'Barrio Itaembé Miní', status: 'active', notes: 'Compra mayorista' },
-            { id: 4, document: '40111222', name: 'Sofía Martínez', phone: '+54 9 376 4223344', email: '-', address: '-', status: 'inactive', notes: 'Deuda pendiente, no fiar' },
-            { id: 5, document: '31555444', name: 'Diego Fernández', phone: '+54 9 376 4556677', email: 'diego.f@email.com', address: 'Centro', status: 'active', notes: '' }
-        ];
-
+                <script>
+        let dbCustomers = [];
         let currentEditId = null;
 
         // Elementos DOM
         const tableBody = document.getElementById('customers-body');
         const searchInput = document.getElementById('search-input');
         const filterStatus = document.getElementById('filter-status');
-        
+
         const kpiTotal = document.getElementById('kpi-total');
         const kpiActive = document.getElementById('kpi-active');
         const kpiInactive = document.getElementById('kpi-inactive');
@@ -291,10 +275,87 @@
         const form = document.getElementById('customer-form');
         const btnToggleStatus = document.getElementById('btn-toggle-status');
 
+        const formLinkInput = document.getElementById('form-link-input');
+        const formLinkSave = document.getElementById('form-link-save');
+        const formLinkStatus = document.getElementById('form-link-status');
+
+        async function loadFormLink() {
+            if (!formLinkInput) return;
+            try {
+                const response = await fetch('/api/clientes/form-link');
+                if (!response.ok) throw new Error('error');
+                const data = await response.json();
+                formLinkInput.value = data.link || '';
+            } catch (error) {
+                console.error('No se pudo cargar el link del formulario', error);
+            }
+        }
+
+        async function saveFormLink() {
+            if (!formLinkInput) return;
+            const link = formLinkInput.value.trim();
+            try {
+                const response = await fetch('/api/clientes/form-link', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link })
+                });
+                if (!response.ok) throw new Error('error');
+                const data = await response.json();
+                formLinkInput.value = data.link || '';
+                if (formLinkStatus) {
+                    formLinkStatus.textContent = 'Link guardado';
+                    setTimeout(() => {
+                        formLinkStatus.textContent = '';
+                    }, 2500);
+                }
+            } catch (error) {
+                console.error('No se pudo guardar el link del formulario', error);
+                if (formLinkStatus) {
+                    formLinkStatus.textContent = 'No se pudo guardar';
+                    setTimeout(() => {
+                        formLinkStatus.textContent = '';
+                    }, 2500);
+                }
+            }
+        }
+
+        if (formLinkSave) {
+            formLinkSave.addEventListener('click', saveFormLink);
+        }
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch('/api/clientes');
+                if (!response.ok) throw new Error('error');
+                const data = await response.json();
+                dbCustomers = Array.isArray(data) ? data.map(mapApiCustomer) : [];
+            } catch (error) {
+                console.error('No se pudieron cargar clientes', error);
+                dbCustomers = [];
+            }
+        }
+
+        function mapApiCustomer(customer) {
+            return {
+                id: customer.id,
+                firstName: customer.firstName || '',
+                lastName: customer.lastName || '',
+                phone: customer.phone || '',
+                email: customer.email || '',
+                active: customer.active === true
+            };
+        }
+
+        async function refreshCustomers() {
+            await loadCustomers();
+            renderTable();
+        }
+
         // --- ACTUALIZAR KPIS ---
         function updateKPIs() {
             const total = dbCustomers.length;
-            const active = dbCustomers.filter(c => c.status === 'active').length;
+            const active = dbCustomers.filter(c => c.active).length;
             const inactive = total - active;
 
             kpiTotal.textContent = total;
@@ -309,13 +370,18 @@
 
             // Filtrar
             const filtered = dbCustomers.filter(c => {
-                const matchSearch = 
-                    c.name.toLowerCase().includes(search) || 
-                    c.document.includes(search) || 
-                    c.phone.includes(search) || 
-                    c.email.toLowerCase().includes(search);
-                const matchStatus = statusFilter === 'all' || c.status === statusFilter;
-                
+                const firstName = (c.firstName || '').toLowerCase();
+                const lastName = (c.lastName || '').toLowerCase();
+                const phone = (c.phone || '').toLowerCase();
+                const email = (c.email || '').toLowerCase();
+                const matchSearch = firstName.includes(search)
+                    || lastName.includes(search)
+                    || phone.includes(search)
+                    || email.includes(search);
+                const matchStatus = statusFilter === 'all'
+                    || (statusFilter === 'active' && c.active)
+                    || (statusFilter === 'inactive' && !c.active);
+
                 return matchSearch && matchStatus;
             });
 
@@ -323,21 +389,21 @@
 
             filtered.forEach(c => {
                 const tr = document.createElement('tr');
-                tr.className = `hover:bg-slate-50 transition-colors cursor-pointer group ${c.status === 'inactive' ? 'bg-slate-50/50 opacity-70' : ''}`;
+                tr.className = `hover:bg-slate-50 transition-colors cursor-pointer group ${!c.active ? 'bg-slate-50/50 opacity-70' : ''}`;
                 tr.onclick = (e) => {
-                    // Evitar abrir si se hizo clic en el botón de acción directamente
+                    // Evitar abrir si se hizo clic en el boton de accion directamente
                     if(!e.target.closest('button')) openDrawer('edit', c.id);
                 };
 
-                const statusBadge = c.status === 'active' 
+                const statusBadge = c.active
                     ? `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check mr-1"></i>Activo</span>`
                     : `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-200 text-slate-600 border border-slate-300"><i class="fa-solid fa-ban mr-1"></i>Inactivo</span>`;
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6 text-sm font-medium text-slate-900 border-b border-slate-100">${c.document}</td>
-                    <td class="py-4 px-6 text-sm text-slate-800 border-b border-slate-100 font-semibold">${c.name}</td>
-                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100">${c.phone || '-'}</td>
-                    <td class="py-4 px-6 text-sm text-slate-500 border-b border-slate-100">${c.email !== '-' ? c.email : '<span class="text-slate-300">Sin correo</span>'}</td>
+                    <td class="py-4 px-6 text-sm font-medium text-slate-900 border-b border-slate-100">${c.firstName}</td>
+                    <td class="py-4 px-6 text-sm text-slate-800 border-b border-slate-100 font-semibold">${c.lastName}</td>
+                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100">${c.phone ? c.phone : '-'}</td>
+                    <td class="py-4 px-6 text-sm text-slate-500 border-b border-slate-100">${c.email ? c.email : '<span class="text-slate-300">Sin correo</span>'}</td>
                     <td class="py-4 px-6 text-center border-b border-slate-100">${statusBadge}</td>
                     <td class="py-4 px-6 text-center border-b border-slate-100">
                         <button onclick="openDrawer('edit', ${c.id})" class="text-slate-400 hover:text-emerald-500 transition-colors p-2 rounded hover:bg-slate-100" title="Editar Cliente">
@@ -364,18 +430,16 @@
             } else if (mode === 'edit') {
                 drawerTitle.innerHTML = `<i class="fa-solid fa-user-pen mr-2 text-amber-500"></i>Modificar Cliente`;
                 const customer = dbCustomers.find(c => c.id === id);
-                
+
                 if(customer) {
                     document.getElementById('form-id').value = customer.id;
-                    document.getElementById('form-document').value = customer.document;
-                    document.getElementById('form-name').value = customer.name;
-                    document.getElementById('form-phone').value = customer.phone !== '-' ? customer.phone : '';
-                    document.getElementById('form-email').value = customer.email !== '-' ? customer.email : '';
-                    document.getElementById('form-address').value = customer.address !== '-' ? customer.address : '';
-                    document.getElementById('form-notes').value = customer.notes;
+                    document.getElementById('form-first-name').value = customer.firstName || '';
+                    document.getElementById('form-last-name').value = customer.lastName || '';
+                    document.getElementById('form-phone').value = customer.phone || '';
+                    document.getElementById('form-email').value = customer.email || '';
 
                     btnToggleStatus.classList.remove('hidden');
-                    if(customer.status === 'active') {
+                    if(customer.active) {
                         btnToggleStatus.innerHTML = `<i class="fa-solid fa-ban mr-1"></i> Desactivar`;
                         btnToggleStatus.className = "text-rose-600 hover:text-rose-800 font-medium text-sm transition-colors";
                     } else {
@@ -390,9 +454,9 @@
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             drawer.classList.remove('drawer-closed');
             drawer.classList.add('drawer-open');
-            
+
             // Foco en el primer campo
-            setTimeout(() => document.getElementById('form-document').focus(), 300);
+            setTimeout(() => document.getElementById('form-first-name').focus(), 300);
         }
 
         function closeDrawer() {
@@ -404,54 +468,60 @@
         }
 
         // --- GUARDAR CLIENTE ---
-        form.addEventListener('submit', (e) => {
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const cData = {
-                document: document.getElementById('form-document').value.trim(),
-                name: document.getElementById('form-name').value.trim(),
-                phone: document.getElementById('form-phone').value.trim() || '-',
-                email: document.getElementById('form-email').value.trim() || '-',
-                address: document.getElementById('form-address').value.trim() || '-',
-                notes: document.getElementById('form-notes').value.trim()
+                firstName: document.getElementById('form-first-name').value.trim(),
+                lastName: document.getElementById('form-last-name').value.trim(),
+                phone: document.getElementById('form-phone').value.trim(),
+                email: document.getElementById('form-email').value.trim()
             };
 
-            if (currentEditId) {
-                // Actualizar
-                const index = dbCustomers.findIndex(c => c.id === currentEditId);
-                if(index !== -1) {
-                    dbCustomers[index] = { ...dbCustomers[index], ...cData };
-                }
-            } else {
-                // Nuevo
-                const newId = Math.max(...dbCustomers.map(c => c.id), 0) + 1;
-                dbCustomers.push({
-                    id: newId,
-                    ...cData,
-                    status: 'active'
-                });
+            try {
+                const response = await fetch(
+                    currentEditId ? `/api/clientes/${currentEditId}` : '/api/clientes',
+                    {
+                        method: currentEditId ? 'PUT' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(cData)
+                    }
+                );
+                if (!response.ok) throw new Error('error');
+                await refreshCustomers();
+                closeDrawer();
+            } catch (error) {
+                console.error('No se pudo guardar el cliente', error);
+                alert('No se pudo guardar el cliente. Revisa los datos e intenta nuevamente.');
             }
-
-            closeDrawer();
-            renderTable();
         });
 
         // --- CAMBIAR ESTADO (ALTA/BAJA) ---
-        function toggleStatusFromForm() {
+        async function toggleStatusFromForm() {
             if (!currentEditId) return;
 
-            const index = dbCustomers.findIndex(c => c.id === currentEditId);
-            if(index !== -1) {
-                const currentStatus = dbCustomers[index].status;
-                const confirmMsg = currentStatus === 'active' 
-                    ? `¿Estás seguro de desactivar al cliente "${dbCustomers[index].name}"?`
-                    : `¿Reactivar al cliente "${dbCustomers[index].name}"?`;
+            const customer = dbCustomers.find(c => c.id === currentEditId);
+            if (!customer) return;
 
-                if(confirm(confirmMsg)) {
-                    dbCustomers[index].status = currentStatus === 'active' ? 'inactive' : 'active';
-                    closeDrawer();
-                    renderTable();
-                }
+            const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+            const confirmMsg = customer.active
+                ? `?Estas seguro de desactivar al cliente "${fullName}"?`
+                : `?Reactivar al cliente "${fullName}"?`;
+
+            if(!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(`/api/clientes/${currentEditId}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: !customer.active })
+                });
+                if (!response.ok) throw new Error('error');
+                await refreshCustomers();
+                closeDrawer();
+            } catch (error) {
+                console.error('No se pudo cambiar el estado', error);
+                alert('No se pudo cambiar el estado del cliente.');
             }
         }
 
@@ -460,7 +530,10 @@
         filterStatus.addEventListener('change', renderTable);
 
         // Inicializar
-        window.onload = renderTable;
+        window.onload = () => {
+            refreshCustomers();
+            loadFormLink();
+        };
 
     </script>
 </body>

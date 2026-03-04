@@ -59,6 +59,13 @@ public class MovimientoTesoreria {
 	@Column(nullable = false, precision = 14, scale = 2)
 	private BigDecimal monto;
 
+	@Column(nullable = false)
+	private Boolean anulado;
+
+	@ManyToOne
+	@JoinColumn(name = "caja_id")
+	private Caja caja;
+
 	@Column(name = "afecta_caja", nullable = false)
 	private Boolean afectaCaja;
 

@@ -80,6 +80,9 @@ public class Caja {
 	@Column(precision = 14, scale = 2)
 	private BigDecimal diferencia;
 
+	@Column(name = "detalle_cierre", length = 2000)
+	private String detalleCierre;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private EstadoCaja estado;

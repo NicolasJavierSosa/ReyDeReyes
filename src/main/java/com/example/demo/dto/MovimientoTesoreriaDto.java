@@ -16,5 +16,6 @@ public record MovimientoTesoreriaDto(
 	MetodoPago paymentMethod,
 	Long saleId,
 	boolean affectsCash,
-	boolean deletable
+	boolean deletable,
+	boolean voided
 ) {}

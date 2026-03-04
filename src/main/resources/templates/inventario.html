@@ -297,6 +297,15 @@
                 </div>
                 <p id="category-modal-status" class="text-xs text-slate-500 mt-2 hidden"></p>
 
+                <div class="mt-4 flex items-center gap-3">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtrar</label>
+                    <select id="category-status-filter" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm">
+                        <option value="all">Todas</option>
+                        <option value="active">Activas</option>
+                        <option value="inactive">Dadas de baja</option>
+                    </select>
+                </div>
+
                 <div class="mt-5">
                     <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Categor&iacute;as existentes</h4>
                     <ul id="category-list" class="divide-y divide-slate-100 border border-slate-200 rounded-lg max-h-64 overflow-y-auto"></ul>
@@ -358,6 +367,7 @@
         const categoryStatus = document.getElementById('category-modal-status');
         const categorySaveBtn = document.getElementById('btn-category-save');
         const categoryCancelBtn = document.getElementById('btn-category-cancel');
+        const categoryStatusFilter = document.getElementById('category-status-filter');
 
         // Formateador
         const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount || 0);
@@ -402,7 +412,7 @@
             const selectedFilter = filterCategory.value || 'all';
 
             categorySelect.innerHTML = '<option value="" disabled>Seleccione una categoria</option>';
-            categories.forEach(cat => {
+            categories.filter(cat => cat.activa).forEach(cat => {
                 const option = document.createElement('option');
                 option.value = String(cat.id);
                 option.textContent = cat.nombre;
@@ -419,7 +429,7 @@
             categories.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = String(cat.id);
-                option.textContent = cat.nombre;
+                option.textContent = cat.activa ? cat.nombre : `${cat.nombre} (Baja)`;
                 filterCategory.appendChild(option);
             });
 
@@ -432,7 +442,7 @@
 
         async function loadCategories() {
             try {
-                const response = await fetch('/api/categorias');
+                const response = await fetch('/api/categorias?status=all');
                 if (!response.ok) throw new Error('error');
                 categories = await response.json();
                 renderCategoryOptions();
@@ -682,21 +692,39 @@
         function renderCategoryList() {
             categoryList.innerHTML = '';
 
-            if (categories.length === 0) {
+            const statusFilter = categoryStatusFilter ? categoryStatusFilter.value : 'all';
+            const filteredCategories = categories.filter(cat => {
+                if (statusFilter === 'active') return cat.activa;
+                if (statusFilter === 'inactive') return !cat.activa;
+                return true;
+            });
+
+            if (filteredCategories.length === 0) {
                 const empty = document.createElement('li');
                 empty.className = 'px-4 py-3 text-sm text-slate-500';
-                empty.textContent = 'No hay categorias cargadas.';
+                empty.textContent = 'No hay categorias para este filtro.';
                 categoryList.appendChild(empty);
                 return;
             }
 
-            categories.forEach(cat => {
+            filteredCategories.forEach(cat => {
                 const li = document.createElement('li');
-                li.className = 'px-4 py-3 flex items-center justify-between';
+                li.className = 'px-4 py-3 flex items-center justify-between gap-3';
+
+                const info = document.createElement('div');
+                info.className = 'flex flex-col';
 
                 const name = document.createElement('span');
                 name.className = 'text-sm font-medium text-slate-700';
                 name.textContent = cat.nombre;
+
+                const status = document.createElement('span');
+                status.className = cat.activa
+                    ? 'text-xs text-emerald-600 font-semibold'
+                    : 'text-xs text-slate-500 font-semibold';
+                status.textContent = cat.activa ? 'Activa' : 'Dado de baja';
+                info.appendChild(name);
+                info.appendChild(status);
 
                 const actions = document.createElement('div');
                 actions.className = 'flex gap-2';
@@ -707,16 +735,18 @@
                 editBtn.textContent = 'Editar';
                 editBtn.addEventListener('click', () => startEditCategory(cat.id));
 
-                const deleteBtn = document.createElement('button');
-                deleteBtn.type = 'button';
-                deleteBtn.className = 'px-2 py-1 text-xs text-rose-600 hover:text-rose-700 border border-rose-200 rounded';
-                deleteBtn.textContent = 'Borrar';
-                deleteBtn.addEventListener('click', () => deleteCategory(cat.id));
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = cat.activa
+                    ? 'px-2 py-1 text-xs text-rose-600 hover:text-rose-700 border border-rose-200 rounded'
+                    : 'px-2 py-1 text-xs text-emerald-600 hover:text-emerald-700 border border-emerald-200 rounded';
+                toggleBtn.textContent = cat.activa ? 'Dar de baja' : 'Reactivar';
+                toggleBtn.addEventListener('click', () => toggleCategoryStatus(cat.id, cat.activa));
 
                 actions.appendChild(editBtn);
-                actions.appendChild(deleteBtn);
+                actions.appendChild(toggleBtn);
 
-                li.appendChild(name);
+                li.appendChild(info);
                 li.appendChild(actions);
 
                 categoryList.appendChild(li);
@@ -787,17 +817,21 @@
             }
         }
 
-        async function deleteCategory(id) {
+        async function toggleCategoryStatus(id, isActive) {
             const used = dbProducts.some(p => p.categoryId === id);
-            if (used) {
-                const ok = confirm('La categoria esta asignada a productos. Si la borras se quitara en esos productos. Continuar?');
+            if (used && isActive) {
+                const ok = confirm('La categoria esta asignada a productos. Si la das de baja se quitara en esos productos. Continuar?');
                 if (!ok) return;
             }
 
             try {
-                const response = await fetch(`/api/categorias/${id}`, { method: 'DELETE' });
+                const response = await fetch(`/api/categorias/${id}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ activa: !isActive })
+                });
                 if (!response.ok) {
-                    setCategoryStatus('No se pudo borrar la categoria.', 'error');
+                    setCategoryStatus('No se pudo actualizar la categoria.', 'error');
                     return;
                 }
 
@@ -807,7 +841,7 @@
                 renderTable();
                 resetCategoryForm();
             } catch (error) {
-                setCategoryStatus('Error al borrar la categoria.', 'error');
+                setCategoryStatus('Error al actualizar la categoria.', 'error');
             }
         }
 
@@ -904,6 +938,7 @@
         if (categoryManageBtn) categoryManageBtn.addEventListener('click', openCategoryModal);
         if (categorySaveBtn) categorySaveBtn.addEventListener('click', saveCategory);
         if (categoryCancelBtn) categoryCancelBtn.addEventListener('click', closeCategoryModal);
+        if (categoryStatusFilter) categoryStatusFilter.addEventListener('change', renderCategoryList);
 
         document.addEventListener('keydown', (e) => {
             if (!drawer.classList.contains('drawer-open')) return;

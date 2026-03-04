@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MovimientoTesoreriaRepository extends JpaRepository<MovimientoTesoreria, Long> {
 	List<MovimientoTesoreria> findAllByOrderByFechaHoraDescIdDesc();
+	List<MovimientoTesoreria> findAllByVentaId(Long ventaId);
+	List<MovimientoTesoreria> findAllByCajaIdOrderByFechaHoraDescIdDesc(Long cajaId);
 }

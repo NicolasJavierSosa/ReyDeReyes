@@ -1,6 +1,7 @@
 package com.example.demo.controlador;
 
 import com.example.demo.dto.CategoriaDto;
+import com.example.demo.dto.CategoriaEstadoRequest;
 import com.example.demo.dto.CategoriaRequest;
 import com.example.demo.modelo.Categoria;
 import com.example.demo.servicio.CategoriaService;
@@ -9,9 +10,11 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,8 +31,8 @@ public class CategoriaController {
 	}
 
 	@GetMapping
-	public List<CategoriaDto> listar() {
-		return categoriaService.listarActivas().stream()
+	public List<CategoriaDto> listar(@RequestParam(required = false) String status) {
+		return categoriaService.listarPorEstado(status).stream()
 			.map(CategoriaController::toDto)
 			.toList();
 	}
@@ -49,6 +52,12 @@ public class CategoriaController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void eliminar(@PathVariable Long id) {
 		categoriaService.eliminar(id);
+	}
+
+	@PatchMapping("/{id}/estado")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void cambiarEstado(@PathVariable Long id, @Valid @RequestBody CategoriaEstadoRequest request) {
+		categoriaService.cambiarEstado(id, request.activa());
 	}
 
 	private static CategoriaDto toDto(Categoria categoria) {

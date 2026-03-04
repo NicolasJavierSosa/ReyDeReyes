@@ -26,6 +26,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -167,6 +168,33 @@ public class VentaService {
 		);
 	}
 
+	@Transactional
+	public void anularVenta(Long ventaId) {
+		Venta venta = ventaRepository.findById(ventaId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
+
+		if (venta.getEstado() == EstadoVenta.ANULADA) {
+			return;
+		}
+
+		if (venta.getEstado() != EstadoVenta.COMPLETADA) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La venta no esta completada");
+		}
+
+		for (DetalleVenta detalle : venta.getDetalles()) {
+			reponerStock(detalle.getProducto(), defaultZero(detalle.getCantidad()));
+		}
+
+		MetodoPago metodoPago = resolveMetodoPago(venta);
+		ajustarCajaPorAnulacion(venta.getCaja(), metodoPago, defaultZero(venta.getTotal()));
+
+		venta.setEstado(EstadoVenta.ANULADA);
+		venta.setObservaciones(appendObservacion(venta.getObservaciones(), "Venta dada de baja"));
+		ventaRepository.save(venta);
+
+		tesoreriaService.anularMovimientosVenta(ventaId);
+	}
+
 	private void descontarStock(Producto producto, BigDecimal quantity) {
 		Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
 		if (stock == null) {
@@ -182,6 +210,22 @@ public class VentaService {
 			);
 		}
 
+		stock.setCantidadActual(scaleQty(nuevo));
+		stock.setUltimoMovimiento(LocalDateTime.now());
+		stockRepository.save(stock);
+	}
+
+	private void reponerStock(Producto producto, BigDecimal quantity) {
+		if (producto == null) {
+			return;
+		}
+		Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
+		if (stock == null) {
+			return;
+		}
+
+		BigDecimal actual = defaultZero(stock.getCantidadActual());
+		BigDecimal nuevo = actual.add(quantity);
 		stock.setCantidadActual(scaleQty(nuevo));
 		stock.setUltimoMovimiento(LocalDateTime.now());
 		stockRepository.save(stock);
@@ -207,23 +251,7 @@ public class VentaService {
 
 	private Caja resolveOrCreateCajaAbierta(Vendedor vendedor) {
 		return cajaRepository.findFirstByEstadoOrderByFechaAperturaDesc(EstadoCaja.ABIERTA)
-			.orElseGet(() -> {
-				Caja caja = new Caja();
-				caja.setFechaApertura(LocalDateTime.now());
-				caja.setMontoApertura(BigDecimal.ZERO);
-				caja.setTotalIngresos(BigDecimal.ZERO);
-				caja.setTotalEgresos(BigDecimal.ZERO);
-				caja.setTotalVentasEfectivo(BigDecimal.ZERO);
-				caja.setTotalVentasTarjeta(BigDecimal.ZERO);
-				caja.setTotalVentasTransferencia(BigDecimal.ZERO);
-				caja.setMontoCierreCalculado(BigDecimal.ZERO);
-				caja.setMontoCierreReal(BigDecimal.ZERO);
-				caja.setDiferencia(BigDecimal.ZERO);
-				caja.setEstado(EstadoCaja.ABIERTA);
-				caja.setResponsable(vendedor);
-				caja.setObservaciones("Caja abierta automaticamente por sistema POS");
-				return cajaRepository.save(caja);
-			});
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hay caja abierta"));
 	}
 
 	private void actualizarTotalesCaja(Caja caja, MetodoPago metodoPago, BigDecimal total) {
@@ -240,6 +268,29 @@ public class VentaService {
 			totalTransferencia = money(totalTransferencia.add(total));
 		} else {
 			totalTarjeta = money(totalTarjeta.add(total));
+		}
+
+		caja.setTotalVentasEfectivo(totalEfectivo);
+		caja.setTotalVentasTarjeta(totalTarjeta);
+		caja.setTotalVentasTransferencia(totalTransferencia);
+		caja.setMontoCierreCalculado(money(apertura.add(totalIngresos).add(totalEfectivo).subtract(totalEgresos)));
+		cajaRepository.save(caja);
+	}
+
+	private void ajustarCajaPorAnulacion(Caja caja, MetodoPago metodoPago, BigDecimal total) {
+		BigDecimal totalEfectivo = defaultZero(caja.getTotalVentasEfectivo());
+		BigDecimal totalTarjeta = defaultZero(caja.getTotalVentasTarjeta());
+		BigDecimal totalTransferencia = defaultZero(caja.getTotalVentasTransferencia());
+		BigDecimal totalIngresos = defaultZero(caja.getTotalIngresos());
+		BigDecimal totalEgresos = defaultZero(caja.getTotalEgresos());
+		BigDecimal apertura = defaultZero(caja.getMontoApertura());
+
+		if (metodoPago == MetodoPago.EFECTIVO) {
+			totalEfectivo = maxZero(totalEfectivo.subtract(total));
+		} else if (metodoPago == MetodoPago.TRANSFERENCIA) {
+			totalTransferencia = maxZero(totalTransferencia.subtract(total));
+		} else {
+			totalTarjeta = maxZero(totalTarjeta.subtract(total));
 		}
 
 		caja.setTotalVentasEfectivo(totalEfectivo);
@@ -274,5 +325,25 @@ public class VentaService {
 
 	private BigDecimal defaultZero(BigDecimal value) {
 		return value == null ? BigDecimal.ZERO : value;
+	}
+
+	private MetodoPago resolveMetodoPago(Venta venta) {
+		if (venta == null || venta.getPagos() == null || venta.getPagos().isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La venta no tiene pagos");
+		}
+		return Optional.ofNullable(venta.getPagos().get(0).getMetodo())
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Metodo de pago no definido"));
+	}
+
+	private BigDecimal maxZero(BigDecimal value) {
+		return value.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : value;
+	}
+
+	private String appendObservacion(String current, String addition) {
+		String base = normalizeOptional(current);
+		if (base.isEmpty()) {
+			return addition;
+		}
+		return base + " | " + addition;
 	}
 }

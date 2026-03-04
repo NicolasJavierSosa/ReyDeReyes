@@ -81,7 +81,7 @@
     <main class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
         
         <!-- Tarjetas de Resumen (KPIs) -->
-        <div class="grid grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <!-- Caja Inicial / Entradas -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
@@ -126,6 +126,17 @@
                     <p class="text-3xl font-bold text-emerald-400" id="kpi-total">$0.00</p>
                 </div>
             </div>
+
+            <!-- Transferencias Debitadas -->
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Transferencias Debitadas</p>
+                    <p class="text-2xl font-bold text-slate-800" id="kpi-transfers">$0.00</p>
+                </div>
+            </div>
         </div>
 
         <!-- Barra de Herramientas -->
@@ -150,6 +161,14 @@
                         <option value="venta">Solo Ventas</option>
                     </select>
                 </div>
+
+                <div class="w-48">
+                    <select id="filter-status" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600 font-medium">
+                        <option value="all">Todos los estados</option>
+                        <option value="active">Activos</option>
+                        <option value="voided">Dado de baja</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Botones de Acción -->
@@ -161,8 +180,11 @@
                     <i class="fa-solid fa-arrow-up mr-2"></i> Ingreso Manual
                 </button>
                 <div class="w-px bg-slate-200 mx-1"></div>
-                <button class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
-                    <i class="fa-solid fa-lock mr-2"></i> Cerrar Turno
+                <button onclick="openCloseModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                    <i class="fa-solid fa-lock mr-2"></i> Cerrar Caja
+                </button>
+                <button onclick="openHistoryModal()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> Historial
                 </button>
             </div>
         </div>
@@ -254,11 +276,6 @@
                     <input type="text" id="form-detail" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Pago a distribuidor de bebidas">
                 </div>
 
-                <!-- Comprobante -->
-                <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nº Comprobante / Recibo</label>
-                    <input type="text" id="form-receipt" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all uppercase" placeholder="Ej: 0001-000451">
-                </div>
             </form>
         </div>
 
@@ -273,18 +290,186 @@
         </div>
     </div>
 
-    <!-- Script Lógica -->
+        <!-- OVERLAY OSCURO PARA CIERRE DE CAJA -->
+    <div id="close-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeCloseModal()"></div>
+
+    <!-- MODAL CIERRE DE CAJA -->
+    <div id="close-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">
+                    <i class="fa-solid fa-lock mr-2 text-slate-500"></i>Cierre de Caja
+                </h2>
+                <button onclick="closeCloseModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="close-form">
+                <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Recuento de Billetes</h3>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                                    <th class="py-2 pr-2">Denominaci&oacute;n</th>
+                                    <th class="py-2 px-2 text-center w-24">Cantidad</th>
+                                    <th class="py-2 pl-2 text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bill-count-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-white border border-slate-200 rounded-xl p-4">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Resumen de Caja</p>
+                            <div class="mt-4 space-y-3 text-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">Efectivo esperado</span>
+                                    <span class="font-semibold text-slate-800" id="expected-cash">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-600">Efectivo contado</span>
+                                    <span class="font-semibold text-slate-800" id="counted-total">$0.00</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-dashed border-slate-200 pt-3">
+                                    <span class="text-slate-600">Diferencia</span>
+                                    <span class="font-bold text-slate-900" id="close-diff">$0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-slate-200 rounded-xl p-4">
+                            <label class="block text-sm font-semibold text-slate-700 mb-2">Observaciones (Opcional)</label>
+                            <textarea id="close-notes" rows="4" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Se detect&oacute; diferencia por cambio entregado"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+                    <button type="button" onclick="closeCloseModal()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 text-white bg-slate-800 rounded-lg hover:bg-slate-900 shadow-md transition-all font-medium flex items-center">
+                        <i class="fa-solid fa-check mr-2"></i> Confirmar Cierre
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- OVERLAY OSCURO PARA HISTORIAL DE CAJAS -->
+    <div id="history-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden" onclick="closeHistoryModal()"></div>
+
+    <!-- MODAL HISTORIAL DE CAJAS -->
+    <div id="history-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+        <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800">
+                    <i class="fa-solid fa-clock-rotate-left mr-2 text-slate-500"></i>Historial de Cajas Cerradas
+                </h2>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-4">
+                <div class="flex flex-wrap gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
+                        <input type="date" id="history-from" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
+                        <input type="date" id="history-to" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                    <button type="button" onclick="resetHistoryFilters()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                        Limpiar filtros
+                    </button>
+                </div>
+
+                <div class="text-sm text-slate-600" id="history-range">Rango: &Uacute;ltimas 10 cajas</div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50">
+                            <tr class="text-xs text-slate-500 uppercase tracking-wider">
+                                <th class="py-3 px-4">Cierre</th>
+                                <th class="py-3 px-4">Responsable</th>
+                                <th class="py-3 px-4 text-right">Esperado</th>
+                                <th class="py-3 px-4 text-right">Contado</th>
+                                <th class="py-3 px-4 text-right">Diferencia</th>
+                                <th class="py-3 px-4">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-body" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center text-sm text-slate-600">
+                    <span id="history-count">Mostrando 0 cajas</span>
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="history-prev" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50" disabled>Anterior</button>
+                        <span id="history-page">P&aacute;g. 1</span>
+                        <button type="button" id="history-next" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50" disabled>Siguiente</button>
+                    </div>
+                </div>
+
+                <div class="mt-5 border-t border-slate-200 pt-4">
+                    <div class="flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-700">Operaciones de la caja seleccionada</h4>
+                            <p class="text-xs text-slate-500" id="history-selected-label">Seleccione una caja del historial para ver sus movimientos.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="text" id="history-mov-search" placeholder="Buscar concepto..." class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                            <select id="history-mov-type" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                                <option value="all">Todos</option>
+                                <option value="ingreso">Ingresos</option>
+                                <option value="egreso">Egresos</option>
+                                <option value="venta">Ventas</option>
+                            </select>
+                            <select id="history-mov-status" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
+                                <option value="all">Todos</option>
+                                <option value="active">Activos</option>
+                                <option value="voided">Dado de baja</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3 border border-slate-200 rounded-xl overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-slate-50">
+                                <tr class="text-xs text-slate-500 uppercase tracking-wider">
+                                    <th class="py-3 px-4">Hora</th>
+                                    <th class="py-3 px-4">Tipo</th>
+                                    <th class="py-3 px-4">Concepto</th>
+                                    <th class="py-3 px-4">Usuario</th>
+                                    <th class="py-3 px-4 text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-movements-body" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-2 text-xs text-slate-500" id="history-mov-count">Mostrando 0 movimientos</div>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Script Lógica -->
     <script>
         const categories = {
             ingreso: [
                 { id: 'cambio_inicial', name: 'Cambio Inicial / Base' },
-                { id: 'ingreso_dueno', name: 'Aporte Dueno' },
+                { id: 'ingreso_dueno', name: 'Aporte Dueño' },
                 { id: 'cobro_cta_cte', name: 'Cobro de Cuenta Corriente' },
                 { id: 'otros_ingresos', name: 'Otros Ingresos' }
             ],
             egreso: [
                 { id: 'pago_proveedor', name: 'Pago a Proveedor' },
-                { id: 'retiro_dueno', name: 'Retiro Dueno / Socios' },
+                { id: 'retiro_dueno', name: 'Retiro Dueño / Socios' },
                 { id: 'gastos_limpieza', name: 'Insumos de Limpieza / Libreria' },
                 { id: 'pago_servicios', name: 'Pago de Servicios' },
                 { id: 'otros_gastos', name: 'Otros Gastos' }
@@ -294,6 +479,7 @@
         const tableBody = document.getElementById('treasury-body');
         const searchInput = document.getElementById('search-input');
         const filterType = document.getElementById('filter-type');
+        const filterStatus = document.getElementById('filter-status');
         const movementCount = document.getElementById('movement-count');
         const filteredTotal = document.getElementById('filtered-total');
 
@@ -301,6 +487,7 @@
         const kpiSales = document.getElementById('kpi-sales');
         const kpiExpenses = document.getElementById('kpi-expenses');
         const kpiTotal = document.getElementById('kpi-total');
+        const kpiTransfers = document.getElementById('kpi-transfers');
 
         const drawer = document.getElementById('movement-drawer');
         const overlay = document.getElementById('drawer-overlay');
@@ -308,11 +495,41 @@
         const categorySelect = document.getElementById('form-category');
         const amountInput = document.getElementById('form-amount');
         const detailInput = document.getElementById('form-detail');
-        const receiptInput = document.getElementById('form-receipt');
+        const closeOverlay = document.getElementById('close-overlay');
+        const closeModal = document.getElementById('close-modal');
+        const closeForm = document.getElementById('close-form');
+        const billCountBody = document.getElementById('bill-count-body');
+        const expectedCashEl = document.getElementById('expected-cash');
+        const countedTotalEl = document.getElementById('counted-total');
+        const closeDiffEl = document.getElementById('close-diff');
+        const closeNotesInput = document.getElementById('close-notes');
+        const historyOverlay = document.getElementById('history-overlay');
+        const historyModal = document.getElementById('history-modal');
+        const historyBody = document.getElementById('history-body');
+        const historyFrom = document.getElementById('history-from');
+        const historyTo = document.getElementById('history-to');
+        const historyPrev = document.getElementById('history-prev');
+        const historyNext = document.getElementById('history-next');
+        const historyCount = document.getElementById('history-count');
+        const historyPageLabel = document.getElementById('history-page');
+        const historyRangeLabel = document.getElementById('history-range');
+        const historySelectedLabel = document.getElementById('history-selected-label');
+        const historyMovementsBody = document.getElementById('history-movements-body');
+        const historyMovementsCount = document.getElementById('history-mov-count');
+        const historyMovSearch = document.getElementById('history-mov-search');
+        const historyMovType = document.getElementById('history-mov-type');
+        const historyMovStatus = document.getElementById('history-mov-status');
 
         const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 
         let movements = [];
+        let currentExpectedCash = 0;
+        let historyPage = 0;
+        const historyPageSize = 10;
+        let selectedHistoryCajaId = null;
+        let selectedHistoryRow = null;
+
+        const denominations = [10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10];
 
         function formatMoney(amount) {
             return moneyFormatter.format(Number(amount) || 0);
@@ -365,6 +582,339 @@
             };
         }
 
+        function renderActionButton(movement) {
+            const type = normalizeType(movement.type);
+            if (type === 'venta' && movement.saleId) {
+                return `
+                    <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Dar de baja venta" onclick="voidSale(${movement.saleId})">
+                        <i class="fa-solid fa-ban"></i>
+                    </button>
+                `;
+            }
+            if (movement.deletable) {
+                return `
+                    <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Dar de baja movimiento" onclick="voidMovement(${movement.id})">
+                        <i class="fa-solid fa-ban"></i>
+                    </button>
+                `;
+            }
+            return '<span class="text-slate-300 text-xs">-</span>';
+        }
+
+        function renderBillRows() {
+            if (!billCountBody) {
+                return;
+            }
+            billCountBody.innerHTML = '';
+            denominations.forEach((denom) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 pr-2 text-sm text-slate-600 font-medium">${formatMoney(denom)}</td>
+                    <td class="py-2 px-2 text-center">
+                        <input type="number" min="0" step="1" value="" placeholder="0" data-denom="${denom}" class="bill-qty w-20 text-center px-2 py-1 bg-white border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none">
+                    </td>
+                    <td class="py-2 pl-2 text-right text-sm font-semibold text-slate-700" id="subtotal-${denom}">$0.00</td>
+                `;
+                billCountBody.appendChild(tr);
+            });
+
+            billCountBody.querySelectorAll('.bill-qty').forEach((input) => {
+                input.addEventListener('input', updateCountedTotals);
+            });
+            updateCountedTotals();
+        }
+
+        function updateCountedTotals() {
+            if (!billCountBody || !countedTotalEl || !closeDiffEl) {
+                return;
+            }
+            let total = 0;
+            billCountBody.querySelectorAll('.bill-qty').forEach((input) => {
+                const denom = Number(input.dataset.denom);
+                let qty = Number(input.value) || 0;
+                if (qty < 0) {
+                    qty = 0;
+                    input.value = 0;
+                }
+                const subtotal = denom * qty;
+                total += subtotal;
+                const subtotalEl = document.getElementById(`subtotal-${denom}`);
+                if (subtotalEl) {
+                    subtotalEl.textContent = formatMoney(subtotal);
+                }
+            });
+            countedTotalEl.textContent = formatMoney(total);
+            const diff = total - currentExpectedCash;
+            closeDiffEl.textContent = formatMoney(diff);
+            closeDiffEl.classList.toggle('text-emerald-600', diff >= 0);
+            closeDiffEl.classList.toggle('text-rose-600', diff < 0);
+        }
+
+        function openCloseModal() {
+            if (!closeOverlay || !closeModal) {
+                return;
+            }
+            if (closeForm) {
+                closeForm.reset();
+            }
+            renderBillRows();
+            if (expectedCashEl) {
+                expectedCashEl.textContent = formatMoney(currentExpectedCash);
+            }
+            closeOverlay.classList.remove('hidden');
+            closeModal.classList.remove('hidden');
+            closeModal.classList.add('flex');
+            setTimeout(() => closeOverlay.classList.remove('opacity-0'), 10);
+        }
+
+        function closeCloseModal() {
+            if (!closeOverlay || !closeModal) {
+                return;
+            }
+            closeOverlay.classList.add('opacity-0');
+            closeOverlay.classList.add('hidden');
+            closeModal.classList.remove('flex');
+            closeModal.classList.add('hidden');
+        }
+
+        function formatDateTime(value) {
+            if (!value) {
+                return '-';
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleString('es-AR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        function formatDateOnly(value) {
+            if (!value) {
+                return '';
+            }
+            const parts = value.split('-');
+            if (parts.length !== 3) {
+                return value;
+            }
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function openHistoryModal() {
+            if (!historyOverlay || !historyModal) {
+                return;
+            }
+            historyPage = 0;
+            selectedHistoryCajaId = null;
+            selectedHistoryRow = null;
+            if (historyMovementsBody) {
+                historyMovementsBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">Seleccione una caja para ver sus movimientos.</td>
+                    </tr>
+                `;
+            }
+            if (historySelectedLabel) {
+                historySelectedLabel.textContent = 'Seleccione una caja del historial para ver sus movimientos.';
+            }
+            if (historyMovementsCount) {
+                historyMovementsCount.textContent = 'Mostrando 0 movimientos';
+            }
+            loadHistory();
+            historyOverlay.classList.remove('hidden');
+            historyModal.classList.remove('hidden');
+            historyModal.classList.add('flex');
+        }
+
+        function closeHistoryModal() {
+            if (!historyOverlay || !historyModal) {
+                return;
+            }
+            historyOverlay.classList.add('hidden');
+            historyModal.classList.remove('flex');
+            historyModal.classList.add('hidden');
+        }
+
+        function resetHistoryFilters() {
+            if (historyFrom) {
+                historyFrom.value = '';
+            }
+            if (historyTo) {
+                historyTo.value = '';
+            }
+            historyPage = 0;
+            loadHistory();
+        }
+
+        async function loadHistory() {
+            if (!historyBody) {
+                return;
+            }
+            const params = new URLSearchParams();
+            if (historyFrom && historyFrom.value) {
+                params.set('from', historyFrom.value);
+            }
+            if (historyTo && historyTo.value) {
+                params.set('to', historyTo.value);
+            }
+            params.set('page', String(historyPage));
+            params.set('size', String(historyPageSize));
+
+            try {
+                const data = await apiFetch(`/api/tesoreria/cajas/cerradas?${params.toString()}`);
+                historyBody.innerHTML = '';
+
+                if (!data.items || data.items.length === 0) {
+                    historyBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="py-4 px-4 text-center text-slate-500">No hay cajas cerradas para el filtro seleccionado.</td>
+                        </tr>
+                    `;
+                } else {
+                    data.items.forEach((item) => {
+                        const diff = Number(item.difference) || 0;
+                        const diffClass = diff >= 0 ? 'text-emerald-600' : 'text-rose-600';
+                        const row = document.createElement('tr');
+                        row.className = 'hover:bg-slate-50 cursor-pointer';
+                        row.dataset.cajaId = String(item.id);
+                        row.addEventListener('click', () => selectHistoryCaja(item, row));
+                        row.innerHTML = `
+                            <td class="py-3 px-4 text-sm text-slate-700">${formatDateTime(item.closedAt)}</td>
+                            <td class="py-3 px-4 text-sm text-slate-600">${escapeHtml(item.responsible || '-')}</td>
+                            <td class="py-3 px-4 text-sm text-right text-slate-700">${formatMoney(item.expectedCash)}</td>
+                            <td class="py-3 px-4 text-sm text-right text-slate-700">${formatMoney(item.countedCash)}</td>
+                            <td class="py-3 px-4 text-sm text-right font-semibold ${diffClass}">${formatMoney(item.difference)}</td>
+                            <td class="py-3 px-4 text-sm text-slate-500">${escapeHtml(item.notes || '')}</td>
+                        `;
+                        historyBody.appendChild(row);
+                    });
+                }
+
+                if (historyCount) {
+                    historyCount.textContent = `Mostrando ${data.items ? data.items.length : 0} cajas`;
+                }
+                if (historyPageLabel) {
+                    historyPageLabel.textContent = `P\u00e1g. ${historyPage + 1}`;
+                }
+                if (historyRangeLabel) {
+                    const fromLabel = historyFrom && historyFrom.value ? formatDateOnly(historyFrom.value) : '';
+                    const toLabel = historyTo && historyTo.value ? formatDateOnly(historyTo.value) : '';
+                    if (fromLabel && toLabel) {
+                        historyRangeLabel.textContent = `Rango: ${fromLabel} a ${toLabel}`;
+                    } else if (fromLabel) {
+                        historyRangeLabel.textContent = `Rango: Desde ${fromLabel}`;
+                    } else if (toLabel) {
+                        historyRangeLabel.textContent = `Rango: Hasta ${toLabel}`;
+                    } else {
+                        historyRangeLabel.textContent = 'Rango: \u00daltimas 10 cajas';
+                    }
+                }
+                if (selectedHistoryCajaId && selectedHistoryRow == null) {
+                    const row = historyBody.querySelector(`tr[data-caja-id="${selectedHistoryCajaId}"]`);
+                    if (row) {
+                        row.classList.add('bg-emerald-50');
+                        selectedHistoryRow = row;
+                    }
+                }
+
+                if (historyPrev) {
+                    historyPrev.disabled = historyPage <= 0;
+                }
+                if (historyNext) {
+                    historyNext.disabled = !data.hasMore;
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function selectHistoryCaja(item, row) {
+            selectedHistoryCajaId = item.id;
+            if (selectedHistoryRow) {
+                selectedHistoryRow.classList.remove('bg-emerald-50');
+            }
+            selectedHistoryRow = row;
+            if (selectedHistoryRow) {
+                selectedHistoryRow.classList.add('bg-emerald-50');
+            }
+            if (historySelectedLabel) {
+                historySelectedLabel.textContent = `Caja #${item.id} cerrada el ${formatDateTime(item.closedAt)}`;
+            }
+            loadHistoryMovements();
+        }
+
+        async function loadHistoryMovements() {
+            if (!historyMovementsBody) {
+                return;
+            }
+            if (!selectedHistoryCajaId) {
+                historyMovementsBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">Seleccione una caja para ver sus movimientos.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const params = new URLSearchParams();
+            if (historyMovSearch && historyMovSearch.value.trim()) {
+                params.set('search', historyMovSearch.value.trim());
+            }
+            if (historyMovType && historyMovType.value) {
+                params.set('type', historyMovType.value);
+            }
+            if (historyMovStatus && historyMovStatus.value) {
+                params.set('status', historyMovStatus.value);
+            }
+
+            try {
+                const data = await apiFetch(`/api/tesoreria/cajas/${selectedHistoryCajaId}/movimientos?${params.toString()}`);
+                historyMovementsBody.innerHTML = '';
+                if (!data || data.length === 0) {
+                    historyMovementsBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-4 px-4 text-center text-slate-500">No hay movimientos para esta caja.</td>
+                        </tr>
+                    `;
+                    if (historyMovementsCount) {
+                        historyMovementsCount.textContent = 'Mostrando 0 movimientos';
+                    }
+                    return;
+                }
+
+                data.forEach((movement) => {
+                    const type = normalizeType(movement.type);
+                    const ui = getTypeUi(type);
+                    const amount = Number(movement.amount) || 0;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="py-3 px-4 text-sm text-slate-600">${formatTime(movement.dateTime)}</td>
+                        <td class="py-3 px-4">${ui.badge}</td>
+                        <td class="py-3 px-4 text-sm text-slate-700">
+                            <div class="font-medium">${ui.icon}${escapeHtml(movement.concept || '-')}</div>
+                            ${movement.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${escapeHtml(movement.detail)}</div>` : ''}
+                            ${movement.voided ? `<div class="text-xs text-rose-500 mt-1 ml-5 font-semibold">Dado de baja</div>` : ''}
+                        </td>
+                        <td class="py-3 px-4 text-sm text-slate-600">${escapeHtml(movement.user || '-')}</td>
+                        <td class="py-3 px-4 text-sm text-right ${ui.amountClass}">${amount > 0 ? '+' : ''}${formatMoney(amount)}</td>
+                    `;
+                    historyMovementsBody.appendChild(row);
+                });
+
+                if (historyMovementsCount) {
+                    historyMovementsCount.textContent = `Mostrando ${data.length} movimientos`;
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
         async function apiFetch(url, options = {}) {
             const response = await fetch(url, options);
             if (response.ok) {
@@ -389,13 +939,18 @@
         function renderTable() {
             const search = searchInput.value.toLowerCase();
             const selectedType = filterType.value;
+            const selectedStatus = filterStatus ? filterStatus.value : 'all';
 
             const filtered = movements.filter((movement) => {
                 const type = normalizeType(movement.type);
                 const searchable = `${movement.concept || ''} ${movement.detail || ''} ${movement.user || ''}`.toLowerCase();
                 const matchesSearch = searchable.includes(search);
                 const matchesType = selectedType === 'all' || type === selectedType;
-                return matchesSearch && matchesType;
+                const isVoided = Boolean(movement.voided);
+                const matchesStatus = selectedStatus === 'all'
+                    || (selectedStatus === 'active' && !isVoided)
+                    || (selectedStatus === 'voided' && isVoided);
+                return matchesSearch && matchesType && matchesStatus;
             });
 
             tableBody.innerHTML = '';
@@ -405,24 +960,23 @@
                 const type = normalizeType(movement.type);
                 const ui = getTypeUi(type);
                 const amount = Number(movement.amount) || 0;
+                const isVoided = Boolean(movement.voided);
                 total += amount;
 
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors group';
+                tr.className = `hover:bg-slate-50 transition-colors group ${isVoided ? 'opacity-60' : ''}`;
                 tr.innerHTML = `
                     <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${formatTime(movement.dateTime)}</td>
                     <td class="py-3 px-6 border-b border-slate-100">${ui.badge}</td>
                     <td class="py-3 px-6 text-sm text-slate-800 border-b border-slate-100">
                         <div class="font-medium">${ui.icon}${escapeHtml(movement.concept || '-')}</div>
                         ${movement.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${escapeHtml(movement.detail)}</div>` : ''}
+                        ${isVoided ? `<div class="text-xs text-rose-500 mt-1 ml-5 font-semibold">Dado de baja</div>` : ''}
                     </td>
                     <td class="py-3 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-circle-user mr-1"></i> ${escapeHtml(movement.user || '-')}</td>
                     <td class="py-3 px-6 text-sm border-b border-slate-100 text-right ${ui.amountClass}">${amount > 0 ? '+' : ''}${formatMoney(amount)}</td>
                     <td class="py-3 px-6 text-center border-b border-slate-100">
-                        ${movement.deletable ? `
-                        <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Anular Movimiento" onclick="deleteMovement(${movement.id})">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>` : '<span class="text-slate-300 text-xs" title="Las ventas se eliminan desde su modulo">-</span>'}
+                        ${isVoided ? '<span class="text-slate-300 text-xs">-</span>' : renderActionButton(movement)}
                     </td>
                 `;
                 tableBody.appendChild(tr);
@@ -442,6 +996,16 @@
             kpiSales.textContent = formatMoney(summary.sales);
             kpiExpenses.textContent = formatMoney(summary.expenses);
             kpiTotal.textContent = formatMoney(summary.cashInDrawer);
+            if (kpiTransfers) {
+                kpiTransfers.textContent = formatMoney(summary.transfersDebited);
+            }
+            currentExpectedCash = Number(summary.cashInDrawer) || 0;
+            if (expectedCashEl) {
+                expectedCashEl.textContent = formatMoney(currentExpectedCash);
+            }
+            if (billCountBody && billCountBody.children.length > 0) {
+                updateCountedTotals();
+            }
         }
 
         async function refreshData() {
@@ -485,13 +1049,26 @@
             setTimeout(() => overlay.classList.add('hidden'), 300);
         }
 
-        async function deleteMovement(id) {
-            if (!confirm('Esta seguro de eliminar este movimiento manual de caja?')) {
+        async function voidMovement(id) {
+            if (!confirm('Esta seguro de dar de baja este movimiento manual de caja?')) {
                 return;
             }
 
             try {
-                await apiFetch(`/api/tesoreria/movimientos/${id}`, { method: 'DELETE' });
+                await apiFetch(`/api/tesoreria/movimientos/${id}/anular`, { method: 'PATCH' });
+                await refreshData();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        async function voidSale(id) {
+            if (!confirm('Esta seguro de dar de baja esta venta?')) {
+                return;
+            }
+
+            try {
+                await apiFetch(`/api/ventas/${id}/anular`, { method: 'PATCH' });
                 await refreshData();
             } catch (error) {
                 alert(error.message);
@@ -524,15 +1101,10 @@
             }
 
             const detail = detailInput.value.trim();
-            const receipt = receiptInput.value.trim();
-            const fullDetail = [detail, receipt ? `Comprobante: ${receipt}` : '']
-                .filter((value) => value.length > 0)
-                .join(' | ');
-
             const payload = {
                 type: type === 'ingreso' ? 'INGRESO' : 'EGRESO',
                 concept,
-                detail: fullDetail,
+                detail: detail,
                 amount
             };
 
@@ -549,8 +1121,90 @@
             }
         });
 
+        if (closeForm) {
+            closeForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                const bills = Array.from(billCountBody.querySelectorAll('.bill-qty')).map((input) => ({
+                    denomination: Number(input.dataset.denom),
+                    quantity: Number(input.value) || 0
+                }));
+
+                const payload = {
+                    bills,
+                    notes: closeNotesInput ? closeNotesInput.value.trim() : ''
+                };
+
+                try {
+                    const result = await apiFetch('/api/tesoreria/caja/cierre', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    closeCloseModal();
+                    await refreshData();
+                    alert(
+                        `Caja cerrada.\\nEsperado: ${formatMoney(result.expectedCash)}\\nContado: ${formatMoney(result.countedCash)}\\nDiferencia: ${formatMoney(result.difference)}`
+                    );
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+
+        if (historyPrev) {
+            historyPrev.addEventListener('click', () => {
+                if (historyPage > 0) {
+                    historyPage -= 1;
+                    loadHistory();
+                }
+            });
+        }
+
+        if (historyNext) {
+            historyNext.addEventListener('click', () => {
+                historyPage += 1;
+                loadHistory();
+            });
+        }
+
+        if (historyFrom) {
+            historyFrom.addEventListener('change', () => {
+                historyPage = 0;
+                loadHistory();
+            });
+        }
+
+        if (historyTo) {
+            historyTo.addEventListener('change', () => {
+                historyPage = 0;
+                loadHistory();
+            });
+        }
+
+        if (historyMovSearch) {
+            historyMovSearch.addEventListener('input', () => {
+                loadHistoryMovements();
+            });
+        }
+
+        if (historyMovType) {
+            historyMovType.addEventListener('change', () => {
+                loadHistoryMovements();
+            });
+        }
+
+        if (historyMovStatus) {
+            historyMovStatus.addEventListener('change', () => {
+                loadHistoryMovements();
+            });
+        }
+
         searchInput.addEventListener('input', renderTable);
         filterType.addEventListener('change', renderTable);
+        if (filterStatus) {
+            filterStatus.addEventListener('change', renderTable);
+        }
 
         (async () => {
             populateCategories('ingreso');

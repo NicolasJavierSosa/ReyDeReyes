@@ -6,5 +6,6 @@ public record TesoreriaResumenDto(
 	BigDecimal incomes,
 	BigDecimal sales,
 	BigDecimal expenses,
-	BigDecimal cashInDrawer
+	BigDecimal cashInDrawer,
+	BigDecimal transfersDebited
 ) {}
