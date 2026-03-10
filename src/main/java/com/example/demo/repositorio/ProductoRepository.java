@@ -12,4 +12,5 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 	boolean existsByCodigoBarra(String codigoBarra);
 	boolean existsByCodigoBarraAndIdNot(String codigoBarra, Long id);
 	List<Producto> findTop20ByActivoTrueAndNombreContainingIgnoreCaseOrderByNombreAsc(String nombre);
+	List<Producto> findByCategoriaIdAndActivoTrue(Long categoriaId);
 }

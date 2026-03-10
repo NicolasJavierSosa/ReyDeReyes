@@ -117,13 +117,13 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
                     </div>
-                    <input type="text" id="search-input" placeholder="Nombre de empresa, contacto..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    <input type="text" id="search-input" placeholder="Empresa o tel&eacute;fono..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                 </div>
             </div>
 
             <!-- Botones de Acción -->
             <div>
-                <button class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                <button id="btn-supplier-open" type="button" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
                     <i class="fa-solid fa-plus mr-2"></i> Nuevo Proveedor
                 </button>
             </div>
@@ -135,9 +135,7 @@
                 <table class="w-full text-left border-collapse whitespace-nowrap">
                     <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
                         <tr>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">CUIT</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Empresa / Distribuidor</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Contacto</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Teléfono (WhatsApp)</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Alertas de Stock</th>
                             <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-32">Acción</th>
@@ -238,28 +236,43 @@
         </div>
     </div>
 
+    <!-- MODAL REGISTRO DE PROVEEDOR -->
+    <div id="supplier-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeSupplierModal()"></div>
+        <div class="relative mx-auto mt-16 w-[520px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center rounded-t-xl">
+                <h3 class="font-bold flex items-center"><i class="fa-solid fa-truck-field mr-2 text-emerald-400"></i> Registrar Proveedor</h3>
+                <button type="button" onclick="closeSupplierModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="supplier-form" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Empresa / Distribuidor *</label>
+                        <input type="text" id="supplier-name" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Distribuidora Norte">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Tel&eacute;fono (WhatsApp) *</label>
+                        <input type="text" id="supplier-phone" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: 11 2345 6789">
+                    </div>
+                </form>
+                <p id="supplier-modal-status" class="text-xs text-slate-500 mt-3 hidden"></p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onclick="closeSupplierModal()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button type="button" id="btn-supplier-save" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg shadow-md transition-all flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script Lógica -->
     <script>
-        // --- BASE DE DATOS SIMULADA ---
-        const dbSuppliers = [
-            { id: 1, cuit: '30-11111111-8', name: 'Distribuidora Femsa', contact: 'Roberto Gómez', phone: '3764112233' },
-            { id: 2, cuit: '30-22222222-8', name: 'Arcor S.A. Mayorista', contact: 'María Pérez', phone: '3764998877' },
-            { id: 3, cuit: '30-33333333-8', name: 'Massalin Particulares', contact: 'Carlos López', phone: '3764554433' }
-        ];
-
-        // Productos vinculados a un proveedor (supplierId)
-        const dbProducts = [
-            { id: 101, supplierId: 1, name: 'Coca Cola 2.25L Retornable', stock: 4, minStock: 10, cost: 1800 }, // Crítico
-            { id: 102, supplierId: 1, name: 'Sprite 2L', stock: 15, minStock: 10, cost: 1700 },
-            { id: 103, supplierId: 1, name: 'Fanta 2L', stock: 2, minStock: 8, cost: 1700 }, // Crítico
-            
-            { id: 201, supplierId: 2, name: 'Papas Lays Clásicas 145g', stock: 3, minStock: 15, cost: 1200 }, // Crítico
-            { id: 202, supplierId: 2, name: 'Alfajor Jorgito Chocolate', stock: 45, minStock: 20, cost: 350 },
-            { id: 203, supplierId: 2, name: 'Gomitas Mogul', stock: 12, minStock: 10, cost: 400 },
-            
-            { id: 301, supplierId: 3, name: 'Marlboro Box 20', stock: 0, minStock: 20, cost: 1950 }, // Crítico
-            { id: 302, supplierId: 3, name: 'Philip Morris Box 20', stock: 5, minStock: 15, cost: 1800 } // Crítico
-        ];
+        // --- DATOS (API) ---
+        let dbSuppliers = [];
+        let dbProducts = [];
 
         // Variables de estado
         let currentSupplier = null;
@@ -275,15 +288,72 @@
         // Modal
         const msgModal = document.getElementById('message-modal');
         const msgContent = document.getElementById('message-modal-content');
+        const supplierModal = document.getElementById('supplier-modal');
+        const supplierForm = document.getElementById('supplier-form');
+        const supplierStatus = document.getElementById('supplier-modal-status');
+        const supplierOpenBtn = document.getElementById('btn-supplier-open');
+        const supplierSaveBtn = document.getElementById('btn-supplier-save');
+        const supplierNameInput = document.getElementById('supplier-name');
+        const supplierPhoneInput = document.getElementById('supplier-phone');
 
         // --- INICIALIZACIÓN Y KPIs ---
-        function init() {
-            renderSuppliers();
-            
-            // Calcular productos críticos globales
+        function mapApiProduct(product) {
+            return {
+                id: product.id,
+                supplierId: product.supplierId != null ? String(product.supplierId) : null,
+                name: product.name || '',
+                stock: Number(product.stock) || 0,
+                minStock: Number(product.minStock) || 0,
+                cost: Number(product.cost) || 0,
+                combo: !!product.combo
+            };
+        }
+
+        function mapApiSupplier(supplier) {
+            return {
+                id: supplier.phone || '',
+                name: supplier.name || '',
+                phone: supplier.phone || '',
+                active: !!supplier.active
+            };
+        }
+
+        async function loadSuppliers() {
+            try {
+                const response = await fetch('/api/proveedores?status=active');
+                if (!response.ok) throw new Error('No se pudieron cargar proveedores');
+                const data = await response.json();
+                dbSuppliers = Array.isArray(data) ? data.map(mapApiSupplier) : [];
+            } catch (error) {
+                console.error(error);
+                dbSuppliers = [];
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const response = await fetch('/api/productos');
+                if (!response.ok) throw new Error('No se pudieron cargar productos');
+                const data = await response.json();
+                dbProducts = Array.isArray(data)
+                    ? data.map(mapApiProduct).filter(p => !p.combo && p.supplierId != null)
+                    : [];
+            } catch (error) {
+                console.error(error);
+                dbProducts = [];
+            }
+        }
+
+        function updateKpis() {
             const criticalCount = dbProducts.filter(p => p.stock <= p.minStock).length;
             document.getElementById('kpi-suppliers').textContent = dbSuppliers.length;
             document.getElementById('kpi-critical').textContent = criticalCount;
+        }
+
+        async function init() {
+            await Promise.all([loadSuppliers(), loadProducts()]);
+            renderSuppliers();
+            updateKpis();
         }
 
         // --- RENDERIZAR TABLA PROVEEDORES ---
@@ -292,7 +362,9 @@
 
             // Filtrar
             const filtered = dbSuppliers.filter(s => {
-                return s.name.toLowerCase().includes(search) || s.contact.toLowerCase().includes(search);
+                const name = (s.name || '').toLowerCase();
+                const phone = (s.phone || '').toLowerCase();
+                return name.includes(search) || phone.includes(search);
             });
 
             suppliersBody.innerHTML = '';
@@ -312,10 +384,8 @@
                 tr.onclick = () => openDrawer(supplier);
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">${supplier.cuit}</td>
-                    <td class="py-4 px-6 text-sm text-slate-900 border-b border-slate-100 font-bold">${supplier.name}</td>
-                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-user mr-2 text-slate-400"></i>${supplier.contact}</td>
-                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-brands fa-whatsapp mr-2 text-emerald-500"></i>${supplier.phone}</td>
+                    <td class="py-4 px-6 text-sm text-slate-900 border-b border-slate-100 font-bold">${supplier.name || '-'}</td>
+                    <td class="py-4 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-brands fa-whatsapp mr-2 text-emerald-500"></i>${supplier.phone || '-'}</td>
                     <td class="py-4 px-6 text-center border-b border-slate-100">${stockAlertHtml}</td>
                     <td class="py-4 px-6 text-center border-b border-slate-100">
                         <button class="bg-slate-100 hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 px-3 py-1.5 rounded text-xs font-semibold transition-all">
@@ -332,7 +402,7 @@
         // --- MANEJO DEL PANEL LATERAL (DRAWER) ---
         function openDrawer(supplier) {
             currentSupplier = supplier;
-            drawerSupplierName.textContent = `Proveedor: ${supplier.name} (${supplier.contact})`;
+            drawerSupplierName.textContent = `Proveedor: ${supplier.name || '-'} (${supplier.phone || '-'})`;
 
             const products = dbProducts.filter(p => p.supplierId === supplier.id);
             drawerProductsBody.innerHTML = '';
@@ -420,7 +490,7 @@
             }
 
             const today = new Date().toLocaleDateString('es-AR');
-            const message = `Hola ${currentSupplier.contact},\nTe escribo desde MiKiosco para hacerte un pedido (Fecha: ${today}).\n\nPor favor, enviame lo siguiente:\n${orderItems.join('\n')}\n\nQuedo a la espera de confirmación y total. ¡Gracias!`;
+            const message = `Hola ${currentSupplier.name},\nTe escribo desde MiKiosco para hacerte un pedido (Fecha: ${today}).\n\nPor favor, enviame lo siguiente:\n${orderItems.join('\n')}\n\nQuedo a la espera de confirmación y total. ¡Gracias!`;
 
             // Mostrar el Modal
             document.getElementById('generated-message').value = message;
@@ -462,8 +532,95 @@
             }, 1000);
         }
 
+        // --- MODAL PROVEEDOR ---
+        function setSupplierStatus(message, tone) {
+            if (!supplierStatus) return;
+            supplierStatus.textContent = message;
+            supplierStatus.classList.remove('hidden');
+            supplierStatus.classList.remove('text-emerald-600', 'text-rose-600', 'text-slate-500');
+
+            if (tone === 'success') {
+                supplierStatus.classList.add('text-emerald-600');
+            } else if (tone === 'error') {
+                supplierStatus.classList.add('text-rose-600');
+            } else {
+                supplierStatus.classList.add('text-slate-500');
+            }
+        }
+
+        function clearSupplierStatus() {
+            if (!supplierStatus) return;
+            supplierStatus.textContent = '';
+            supplierStatus.classList.add('hidden');
+        }
+
+        function resetSupplierForm() {
+            if (!supplierForm) return;
+            supplierForm.reset();
+            clearSupplierStatus();
+        }
+
+        function openSupplierModal() {
+            resetSupplierForm();
+            supplierModal.classList.remove('hidden');
+            supplierNameInput && supplierNameInput.focus();
+        }
+
+        function closeSupplierModal() {
+            supplierModal.classList.add('hidden');
+            resetSupplierForm();
+        }
+
+        async function saveSupplier() {
+            const name = supplierNameInput.value.trim();
+            const phone = supplierPhoneInput.value.trim();
+
+            if (!name || !phone) {
+                setSupplierStatus('Complete todos los campos obligatorios.', 'error');
+                return;
+            }
+
+            supplierSaveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/proveedores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        phone,
+                        active: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    setSupplierStatus(message || 'No se pudo guardar el proveedor.', 'error');
+                    return;
+                }
+
+                await response.json();
+                await loadSuppliers();
+                renderSuppliers();
+                updateKpis();
+                closeSupplierModal();
+            } catch (error) {
+                setSupplierStatus('Error al guardar el proveedor.', 'error');
+            } finally {
+                supplierSaveBtn.disabled = false;
+            }
+        }
+
         // --- EVENTOS BUSCADOR ---
         searchInput.addEventListener('input', renderSuppliers);
+        if (supplierOpenBtn) supplierOpenBtn.addEventListener('click', openSupplierModal);
+        if (supplierSaveBtn) supplierSaveBtn.addEventListener('click', saveSupplier);
+        if (supplierForm) {
+            supplierForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                saveSupplier();
+            });
+        }
 
         // Iniciar
         window.onload = init;
@@ -471,3 +628,5 @@
     </script>
 </body>
 </html>
+
+

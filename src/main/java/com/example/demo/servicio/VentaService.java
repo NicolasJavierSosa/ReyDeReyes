@@ -4,6 +4,8 @@ import com.example.demo.dto.VentaCheckoutItemRequest;
 import com.example.demo.dto.VentaCheckoutPagoRequest;
 import com.example.demo.dto.VentaCheckoutRequest;
 import com.example.demo.dto.VentaCheckoutResponse;
+import com.example.demo.dto.VentaDetalleItemDto;
+import com.example.demo.dto.VentaDetalleResponse;
 import com.example.demo.enums.EstadoCaja;
 import com.example.demo.enums.EstadoVenta;
 import com.example.demo.enums.MetodoPago;
@@ -94,6 +96,7 @@ public class VentaService {
 
 			Producto producto = productoRepository.findByCodigoBarraAndActivoTrue(barcode)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado: " + barcode));
+			validarComboDisponible(producto);
 
 			BigDecimal precioUnitario = money(defaultZero(producto.getPrecioVenta()));
 			BigDecimal subtotalLinea = money(precioUnitario.multiply(quantity));
@@ -168,6 +171,42 @@ public class VentaService {
 		);
 	}
 
+	@Transactional(readOnly = true)
+	public VentaDetalleResponse obtenerDetalle(Long ventaId) {
+		Venta venta = ventaRepository.findById(ventaId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Venta no encontrada"));
+
+		MetodoPago metodoPago = null;
+		try {
+			metodoPago = resolveMetodoPago(venta);
+		} catch (ResponseStatusException ignored) {
+			// Venta sin pago
+		}
+
+		List<VentaDetalleItemDto> items = venta.getDetalles().stream()
+			.map(detalle -> new VentaDetalleItemDto(
+				detalle.getProducto() != null ? detalle.getProducto().getCodigoBarra() : "",
+				detalle.getProducto() != null ? detalle.getProducto().getNombre() : "",
+				defaultZero(detalle.getCantidad()),
+				defaultZero(detalle.getPrecioUnitario()),
+				defaultZero(detalle.getSubtotal()),
+				defaultZero(detalle.getTotalLinea())
+			))
+			.toList();
+
+		return new VentaDetalleResponse(
+			venta.getId(),
+			String.format("%06d", venta.getId()),
+			venta.getFechaHora(),
+			defaultZero(venta.getSubtotal()),
+			defaultZero(venta.getDescuentoTotal()),
+			defaultZero(venta.getTotal()),
+			venta.getEstado(),
+			metodoPago,
+			items
+		);
+	}
+
 	@Transactional
 	public void anularVenta(Long ventaId) {
 		Venta venta = ventaRepository.findById(ventaId)
@@ -229,6 +268,67 @@ public class VentaService {
 		stock.setCantidadActual(scaleQty(nuevo));
 		stock.setUltimoMovimiento(LocalDateTime.now());
 		stockRepository.save(stock);
+	}
+
+	private void validarComboDisponible(Producto producto) {
+		if (producto == null || !producto.isCombo()) {
+			return;
+		}
+		if (isGroupCombo(producto)) {
+			Long categoryId = producto.getComboGrupoCategoria().getId();
+			int required = producto.getComboGrupoCantidad() != null ? producto.getComboGrupoCantidad() : 0;
+			if (required <= 0) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Combo sin cantidad definida");
+			}
+			BigDecimal totalStock = sumStockByCategoryId(categoryId);
+			if (totalStock.compareTo(BigDecimal.valueOf(required)) < 0) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Combo sin stock disponible");
+			}
+			return;
+		}
+
+		List<Producto> items = producto.getComboProductos();
+		if (items == null || items.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Combo sin productos disponibles");
+		}
+
+		for (Producto item : items) {
+			if (item == null || !Boolean.TRUE.equals(item.getActivo())) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Combo no disponible: producto inactivo");
+			}
+			Stock stock = stockRepository.findByProductoId(item.getId()).orElse(null);
+			BigDecimal actual = stock != null && stock.getCantidadActual() != null
+				? stock.getCantidadActual()
+				: BigDecimal.ZERO;
+			if (actual.compareTo(BigDecimal.ZERO) <= 0) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Combo sin stock disponible");
+			}
+		}
+	}
+
+	private boolean isGroupCombo(Producto combo) {
+		return combo.getComboGrupoCategoria() != null
+			&& combo.getComboGrupoCantidad() != null
+			&& combo.getComboGrupoCantidad() > 0;
+	}
+
+	private BigDecimal sumStockByCategoryId(Long categoryId) {
+		if (categoryId == null) {
+			return BigDecimal.ZERO;
+		}
+		List<Producto> productos = productoRepository.findByCategoriaIdAndActivoTrue(categoryId);
+		BigDecimal total = BigDecimal.ZERO;
+		for (Producto producto : productos) {
+			if (producto == null || producto.isCombo()) {
+				continue;
+			}
+			Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
+			BigDecimal actual = stock != null && stock.getCantidadActual() != null
+				? stock.getCantidadActual()
+				: BigDecimal.ZERO;
+			total = total.add(actual);
+		}
+		return total;
 	}
 
 	private Vendedor resolveOrCreateVendedor() {

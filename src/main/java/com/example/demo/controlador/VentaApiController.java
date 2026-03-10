@@ -2,9 +2,11 @@ package com.example.demo.controlador;
 
 import com.example.demo.dto.VentaCheckoutRequest;
 import com.example.demo.dto.VentaCheckoutResponse;
+import com.example.demo.dto.VentaDetalleResponse;
 import com.example.demo.servicio.VentaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,5 +35,10 @@ public class VentaApiController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void anular(@PathVariable Long id) {
 		ventaService.anularVenta(id);
+	}
+
+	@GetMapping("/{id}")
+	public VentaDetalleResponse detalle(@PathVariable Long id) {
+		return ventaService.obtenerDetalle(id);
 	}
 }

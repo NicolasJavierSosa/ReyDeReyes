@@ -1,5 +1,6 @@
 package com.example.demo.controlador;
 
+import com.example.demo.dto.ComboRequest;
 import com.example.demo.dto.ProductoDto;
 import com.example.demo.dto.ProductoEstadoRequest;
 import com.example.demo.dto.ProductoRequest;
@@ -40,9 +41,20 @@ public class ProductoController {
 		return productoService.crear(request);
 	}
 
+	@PostMapping("/combos")
+	@ResponseStatus(HttpStatus.CREATED)
+	public ProductoDto crearCombo(@Valid @RequestBody ComboRequest request) {
+		return productoService.crearCombo(request);
+	}
+
 	@PutMapping("/{id}")
 	public ProductoDto actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequest request) {
 		return productoService.actualizar(id, request);
+	}
+
+	@PutMapping("/combos/{id}")
+	public ProductoDto actualizarCombo(@PathVariable Long id, @Valid @RequestBody ComboRequest request) {
+		return productoService.actualizarCombo(id, request);
 	}
 
 	@PatchMapping("/{id}/estado")

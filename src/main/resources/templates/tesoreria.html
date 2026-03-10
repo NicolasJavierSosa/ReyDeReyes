@@ -458,6 +458,74 @@
         </div>
     </div>
 
+    <!-- OVERLAY DETALLE DE VENTA -->
+    <div id="sale-detail-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden" onclick="closeSaleDetailModal()"></div>
+
+    <!-- MODAL DETALLE DE VENTA -->
+    <div id="sale-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-lg font-bold text-slate-800" id="sale-detail-title">
+                    <i class="fa-solid fa-receipt mr-2 text-slate-500"></i>Detalle de Venta
+                </h2>
+                <button onclick="closeSaleDetailModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-4">
+                <div class="grid grid-cols-2 gap-4 text-sm text-slate-700">
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Ticket</div>
+                        <div class="font-semibold" id="sale-detail-ticket">-</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Fecha</div>
+                        <div class="font-semibold" id="sale-detail-date">-</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Estado</div>
+                        <div class="font-semibold" id="sale-detail-status">-</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Pago</div>
+                        <div class="font-semibold" id="sale-detail-payment">-</div>
+                    </div>
+                </div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50">
+                            <tr class="text-xs text-slate-500 uppercase tracking-wider">
+                                <th class="py-3 px-4">Código</th>
+                                <th class="py-3 px-4">Producto</th>
+                                <th class="py-3 px-4 text-center">Cant.</th>
+                                <th class="py-3 px-4 text-right">Precio</th>
+                                <th class="py-3 px-4 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sale-detail-items" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end gap-6 text-sm text-slate-700">
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Subtotal</div>
+                        <div class="font-semibold text-right" id="sale-detail-subtotal">$0.00</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Descuento</div>
+                        <div class="font-semibold text-right text-rose-600" id="sale-detail-discount">$0.00</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Total</div>
+                        <div class="font-semibold text-right text-emerald-600" id="sale-detail-total">$0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <!-- Script Lógica -->
     <script>
         const categories = {
@@ -519,6 +587,16 @@
         const historyMovSearch = document.getElementById('history-mov-search');
         const historyMovType = document.getElementById('history-mov-type');
         const historyMovStatus = document.getElementById('history-mov-status');
+        const saleDetailOverlay = document.getElementById('sale-detail-overlay');
+        const saleDetailModal = document.getElementById('sale-detail-modal');
+        const saleDetailTicket = document.getElementById('sale-detail-ticket');
+        const saleDetailDate = document.getElementById('sale-detail-date');
+        const saleDetailStatus = document.getElementById('sale-detail-status');
+        const saleDetailPayment = document.getElementById('sale-detail-payment');
+        const saleDetailItems = document.getElementById('sale-detail-items');
+        const saleDetailSubtotal = document.getElementById('sale-detail-subtotal');
+        const saleDetailDiscount = document.getElementById('sale-detail-discount');
+        const saleDetailTotal = document.getElementById('sale-detail-total');
 
         const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
 
@@ -704,6 +782,78 @@
                 return value;
             }
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function formatQty(value) {
+            const num = Number(value);
+            if (!Number.isFinite(num)) return '0';
+            return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+        }
+
+        function formatPaymentMethod(method) {
+            if (!method) return '-';
+            if (method === 'EFECTIVO') return 'Efectivo';
+            if (method === 'TRANSFERENCIA') return 'Transferencia';
+            if (method === 'TARJETA') return 'Tarjeta';
+            return method;
+        }
+
+        function closeSaleDetailModal() {
+            if (!saleDetailOverlay || !saleDetailModal) return;
+            saleDetailOverlay.classList.add('hidden');
+            saleDetailModal.classList.remove('flex');
+            saleDetailModal.classList.add('hidden');
+        }
+
+        function renderSaleDetail(sale) {
+            if (!sale) return;
+            if (saleDetailTicket) saleDetailTicket.textContent = sale.ticket ? `#${sale.ticket}` : '-';
+            if (saleDetailDate) saleDetailDate.textContent = formatDateTime(sale.dateTime);
+            if (saleDetailStatus) saleDetailStatus.textContent = sale.status || '-';
+            if (saleDetailPayment) saleDetailPayment.textContent = formatPaymentMethod(sale.paymentMethod);
+
+            if (saleDetailSubtotal) saleDetailSubtotal.textContent = formatMoney(sale.subtotal);
+            if (saleDetailDiscount) saleDetailDiscount.textContent = formatMoney(sale.discount);
+            if (saleDetailTotal) saleDetailTotal.textContent = formatMoney(sale.total);
+
+            if (saleDetailItems) {
+                saleDetailItems.innerHTML = '';
+                const items = Array.isArray(sale.items) ? sale.items : [];
+                if (!items.length) {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">No hay productos en esta venta.</td>
+                    `;
+                    saleDetailItems.appendChild(tr);
+                } else {
+                    items.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="py-3 px-4 text-sm text-slate-700">${escapeHtml(item.barcode || '-')}</td>
+                            <td class="py-3 px-4 text-sm text-slate-700">${escapeHtml(item.name || '-')}</td>
+                            <td class="py-3 px-4 text-sm text-slate-700 text-center">${formatQty(item.quantity)}</td>
+                            <td class="py-3 px-4 text-sm text-slate-700 text-right">${formatMoney(item.unitPrice)}</td>
+                            <td class="py-3 px-4 text-sm text-slate-700 text-right">${formatMoney(item.subtotal)}</td>
+                        `;
+                        saleDetailItems.appendChild(tr);
+                    });
+                }
+            }
+        }
+
+        async function openSaleDetailModal(saleId) {
+            if (!saleId) return;
+            try {
+                const sale = await apiFetch(`/api/ventas/${saleId}`);
+                renderSaleDetail(sale);
+                if (saleDetailOverlay && saleDetailModal) {
+                    saleDetailOverlay.classList.remove('hidden');
+                    saleDetailModal.classList.remove('hidden');
+                    saleDetailModal.classList.add('flex');
+                }
+            } catch (error) {
+                alert(error.message);
+            }
         }
 
         function openHistoryModal() {
@@ -893,6 +1043,13 @@
                     const ui = getTypeUi(type);
                     const amount = Number(movement.amount) || 0;
                     const row = document.createElement('tr');
+                    if (type === 'venta' && movement.saleId) {
+                        row.classList.add('cursor-pointer', 'hover:bg-slate-50');
+                        row.addEventListener('click', (event) => {
+                            if (event.target && event.target.closest('button')) return;
+                            openSaleDetailModal(movement.saleId);
+                        });
+                    }
                     row.innerHTML = `
                         <td class="py-3 px-4 text-sm text-slate-600">${formatTime(movement.dateTime)}</td>
                         <td class="py-3 px-4">${ui.badge}</td>
@@ -965,6 +1122,13 @@
 
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-slate-50 transition-colors group ${isVoided ? 'opacity-60' : ''}`;
+                if (type === 'venta' && movement.saleId) {
+                    tr.classList.add('cursor-pointer');
+                    tr.addEventListener('click', (event) => {
+                        if (event.target && event.target.closest('button')) return;
+                        openSaleDetailModal(movement.saleId);
+                    });
+                }
                 tr.innerHTML = `
                     <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${formatTime(movement.dateTime)}</td>
                     <td class="py-3 px-6 border-b border-slate-100">${ui.badge}</td>

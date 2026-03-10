@@ -61,7 +61,11 @@ public class TesoreriaService {
 
 	@Transactional(readOnly = true)
 	public List<MovimientoTesoreriaDto> listarMovimientos() {
-		return movimientoTesoreriaRepository.findAllByOrderByFechaHoraDescIdDesc().stream()
+		Caja caja = cajaRepository.findFirstByEstadoOrderByFechaAperturaDesc(EstadoCaja.ABIERTA).orElse(null);
+		if (caja == null) {
+			return List.of();
+		}
+		return movimientoTesoreriaRepository.findAllByCajaIdOrderByFechaHoraDescIdDesc(caja.getId()).stream()
 			.map(this::toDto)
 			.toList();
 	}
@@ -476,13 +480,17 @@ public class TesoreriaService {
 	}
 
 	private TesoreriaTotals calcularTotales() {
+		Caja caja = cajaRepository.findFirstByEstadoOrderByFechaAperturaDesc(EstadoCaja.ABIERTA).orElse(null);
+		if (caja == null) {
+			return new TesoreriaTotals(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+		}
 		BigDecimal totalIngresos = BigDecimal.ZERO;
 		BigDecimal totalVentas = BigDecimal.ZERO;
 		BigDecimal totalEgresos = BigDecimal.ZERO;
 		BigDecimal efectivoCaja = BigDecimal.ZERO;
 		BigDecimal transferencias = BigDecimal.ZERO;
 
-		for (MovimientoTesoreria movimiento : movimientoTesoreriaRepository.findAll()) {
+		for (MovimientoTesoreria movimiento : movimientoTesoreriaRepository.findAllByCajaIdOrderByFechaHoraDescIdDesc(caja.getId())) {
 			if (Boolean.TRUE.equals(movimiento.getAnulado())) {
 				continue;
 			}

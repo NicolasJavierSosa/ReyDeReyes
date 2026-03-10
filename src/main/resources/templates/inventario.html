@@ -97,6 +97,16 @@
                         <option value="inactive">Dados de Baja</option>
                     </select>
                 </div>
+
+                <!-- Filtro Tipo -->
+                <div class="w-40">
+                    <label for="filter-kind" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tipo</label>
+                    <select id="filter-kind" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                        <option value="all">Todos</option>
+                        <option value="product">Productos</option>
+                        <option value="combo">Combos</option>
+                    </select>
+                </div>
                 
                 <button onclick="renderTable()" class="px-4 py-2 text-slate-500 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 transition-colors">
                     <i class="fa-solid fa-filter"></i> Filtrar
@@ -105,9 +115,14 @@
 
             <!-- Botón Registrar -->
             <div>
-                <button onclick="openDrawer('add')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center shadow-emerald-500/30">
-                    <i class="fa-solid fa-plus mr-2"></i> Registrar Producto
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="openDrawer('add')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center shadow-emerald-500/30">
+                        <i class="fa-solid fa-plus mr-2"></i> Registrar Producto
+                    </button>
+                    <button onclick="openComboDrawer('add')" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
+                        <i class="fa-solid fa-layer-group mr-2"></i> Registrar Combo
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -146,7 +161,7 @@
     </main>
 
     <!-- OVERLAY OSCURO PARA EL PANEL LATERAL -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeActiveDrawer()"></div>
 
     <!-- PANEL LATERAL (SLIDE-OVER) PARA FORMULARIO DE PRODUCTO -->
     <div id="product-drawer" class="fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
@@ -195,6 +210,19 @@
                         </select>
                         <button type="button" id="btn-category-manage" class="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors" title="Gestionar categorias">
                             <i class="fa-solid fa-gear"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Proveedor -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Proveedor</label>
+                    <div class="flex gap-2">
+                        <select id="form-supplier" class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                            <option value="">Sin proveedor</option>
+                        </select>
+                        <button type="button" id="btn-supplier-manage" class="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors" title="Registrar proveedor">
+                            <i class="fa-solid fa-plus"></i>
                         </button>
                     </div>
                 </div>
@@ -279,7 +307,161 @@
         </div>
     </div>
 
-        <!-- MODAL GESTION DE CATEGORIAS -->
+    <!-- PANEL LATERAL (SLIDE-OVER) PARA FORMULARIO DE COMBO -->
+    <div id="combo-drawer" class="fixed inset-y-0 right-0 w-[560px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
+
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 id="combo-drawer-title" class="text-lg font-bold text-slate-800"><i class="fa-solid fa-layer-group mr-2 text-slate-800"></i>Registrar Combo</h2>
+            <button onclick="closeComboDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-6 flex-1 overflow-y-auto">
+            <form id="combo-form" class="flex flex-col gap-5">
+                <input type="hidden" id="combo-id">
+
+                <!-- Tipo de Combo -->
+                <div class="flex items-center gap-4">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tipo de combo</span>
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="radio" name="combo-mode" value="items" class="text-emerald-600" checked>
+                        Por productos
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="radio" name="combo-mode" value="group" class="text-emerald-600">
+                        Por grupo
+                    </label>
+                </div>
+
+                <!-- Productos del Combo -->
+                <div id="combo-items-section" class="border border-slate-200 rounded-lg overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Productos del combo *</span>
+                        <span class="text-xs text-slate-500">Seleccionados: <span id="combo-selected-count" class="text-emerald-600 font-bold">0</span></span>
+                    </div>
+                    <div class="p-3">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                            </div>
+                            <input type="text" id="combo-search" placeholder="Buscar o escanear c&oacute;digo..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        </div>
+                        <p id="combo-search-status" class="text-xs text-slate-500 mt-2 hidden"></p>
+                        <div id="combo-search-results" class="mt-3 border border-slate-200 rounded-lg bg-white hidden">
+                            <div class="px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Resultados</div>
+                            <ul id="combo-results-list" class="divide-y divide-slate-100 max-h-40 overflow-y-auto"></ul>
+                        </div>
+                    </div>
+                    <div class="max-h-56 overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white sticky top-0 shadow-sm">
+                                <tr>
+                                    <th class="py-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-10 text-center">
+                                        <i class="fa-solid fa-check-double text-slate-400" title="Seleccionar"></i>
+                                    </th>
+                                    <th class="py-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Producto</th>
+                                    <th class="py-2 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right w-28">Precio</th>
+                                </tr>
+                            </thead>
+                            <tbody id="combo-products-body" class="divide-y divide-slate-100 bg-white">
+                                <!-- Productos generados por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Grupo del Combo -->
+                <div id="combo-group-section" class="border border-slate-200 rounded-lg overflow-hidden hidden">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Grupo del combo *</span>
+                    </div>
+                    <div class="p-4 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Categor&iacute;a del grupo</label>
+                            <select id="combo-group-category" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                                <option value="" disabled selected>Seleccione una categor&iacute;a</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Cantidad</label>
+                            <input type="number" id="combo-group-qty" min="1" step="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        </div>
+                    </div>
+                    <p class="px-4 pb-4 text-xs text-slate-500">Ej: Grupo Jugos_BC con cantidad 3.</p>
+                </div>
+
+                <!-- Nombre -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Nombre del Combo *</label>
+                    <input type="text" id="combo-name" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Combo Gaseosa + Snack">
+                </div>
+
+                <!-- Descripcion -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Descripci&oacute;n</label>
+                    <textarea id="combo-description" rows="2" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none"></textarea>
+                </div>
+
+                <!-- Categoria -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Categor&iacute;a *</label>
+                    <select id="combo-category" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
+                        <option value="" disabled selected>Seleccione una categor&iacute;a</option>
+                    </select>
+                </div>
+
+                <!-- Precio -->
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Precio Combo *</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                        <input type="number" id="combo-price" step="0.01" min="0" required class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                    </div>
+                    <div class="mt-2 flex items-center justify-between text-xs">
+                        <button type="button" id="combo-price-sync" class="text-emerald-600 hover:text-emerald-700 font-semibold">Usar suma de productos</button>
+                        <span class="text-slate-500">Precio individual: <span id="combo-normal-price" class="font-semibold">-</span></span>
+                    </div>
+                    <div id="combo-summary" class="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        <div class="flex items-center justify-between">
+                            <span>Precio individual</span>
+                            <span id="combo-summary-normal" class="font-semibold">-</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Precio combo</span>
+                            <span id="combo-summary-current" class="font-semibold">-</span>
+                        </div>
+                        <div id="combo-discount" class="mt-2 text-emerald-600 font-semibold hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Activo -->
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" id="combo-active" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" checked>
+                    <label for="combo-active" class="text-sm font-semibold text-slate-700">Activo</label>
+                </div>
+
+                
+            </form>
+        </div>
+
+        <!-- Botones de Accion Formulario -->
+        <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+            <button type="button" id="btn-toggle-combo-status" onclick="toggleComboStatusFromForm()" class="text-rose-600 hover:text-rose-800 font-medium text-sm hidden">
+                <i class="fa-solid fa-ban mr-1"></i> Dar de baja
+            </button>
+            <div class="flex gap-3 ml-auto">
+                <button type="button" onclick="closeComboDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Cancelar
+                </button>
+                <button type="submit" form="combo-form" class="px-5 py-2.5 text-white bg-slate-800 rounded-lg hover:bg-slate-900 shadow-md transition-all font-medium flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GESTION DE CATEGORIAS -->
     <div id="category-modal" class="fixed inset-0 z-[60] hidden">
         <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeCategoryModal()"></div>
         <div class="relative mx-auto mt-16 w-[520px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200">
@@ -317,15 +499,51 @@
         </div>
     </div>
 
+    <!-- MODAL REGISTRO DE PROVEEDOR -->
+    <div id="supplier-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeSupplierModal()"></div>
+        <div class="relative mx-auto mt-16 w-[520px] max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center rounded-t-xl">
+                <h3 class="font-bold flex items-center"><i class="fa-solid fa-truck-field mr-2 text-emerald-400"></i> Registrar Proveedor</h3>
+                <button type="button" onclick="closeSupplierModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="supplier-form" class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Empresa / Distribuidor *</label>
+                        <input type="text" id="supplier-name" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Distribuidora Norte">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Tel&eacute;fono (WhatsApp) *</label>
+                        <input type="text" id="supplier-phone" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: 11 2345 6789">
+                    </div>
+                </form>
+                <p id="supplier-modal-status" class="text-xs text-slate-500 mt-3 hidden"></p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                <button type="button" onclick="closeSupplierModal()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                <button type="button" id="btn-supplier-save" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg shadow-md transition-all flex items-center">
+                    <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
 <!-- Script Lógica -->
                 <script>
         // --- CATEGORIAS (API) ---
         let categories = [];
+        let suppliers = [];
 
         let dbProducts = [];
 
         let currentEditId = null;
+        let currentComboId = null;
+        let comboSelection = new Set();
         let offLookupTimer = null;
+        let offLastBarcode = '';
         let scanBuffer = '';
         let scanTimer = null;
         let editingCategoryId = null;
@@ -338,17 +556,27 @@
         const form = document.getElementById('product-form');
         const btnToggleStatus = document.getElementById('btn-toggle-status');
         const saveProductBtn = document.querySelector('button[form="product-form"]');
+        const comboDrawer = document.getElementById('combo-drawer');
+        const comboDrawerTitle = document.getElementById('combo-drawer-title');
+        const comboForm = document.getElementById('combo-form');
+        const comboToggleStatusBtn = document.getElementById('btn-toggle-combo-status');
+        const saveComboBtn = document.querySelector('button[form="combo-form"]');
+        const comboModeInputs = document.querySelectorAll('input[name="combo-mode"]');
+        const comboItemsSection = document.getElementById('combo-items-section');
+        const comboGroupSection = document.getElementById('combo-group-section');
 
         // Inputs Filtros
         const searchInput = document.getElementById('search-input');
         const filterCategory = document.getElementById('filter-category');
         const filterStatus = document.getElementById('filter-status');
+        const filterKind = document.getElementById('filter-kind');
 
         // Inputs Formulario
         const barcodeInput = document.getElementById('form-code');
         const nameInput = document.getElementById('form-name');
         const descriptionInput = document.getElementById('form-description');
         const categorySelect = document.getElementById('form-category');
+        const supplierSelect = document.getElementById('form-supplier');
         const unitSelect = document.getElementById('form-unit');
         const typeSelect = document.getElementById('form-type');
         const costInput = document.getElementById('form-cost');
@@ -359,6 +587,33 @@
         const offStatus = document.getElementById('off-status');
         const offLookupBtn = document.getElementById('btn-off-lookup');
         const categoryManageBtn = document.getElementById('btn-category-manage');
+        const supplierManageBtn = document.getElementById('btn-supplier-manage');
+        const supplierModal = document.getElementById('supplier-modal');
+        const supplierForm = document.getElementById('supplier-form');
+        const supplierStatus = document.getElementById('supplier-modal-status');
+        const supplierSaveBtn = document.getElementById('btn-supplier-save');
+        const supplierNameInput = document.getElementById('supplier-name');
+        const supplierPhoneInput = document.getElementById('supplier-phone');
+
+        // Inputs Formulario Combo
+        const comboNameInput = document.getElementById('combo-name');
+        const comboDescriptionInput = document.getElementById('combo-description');
+        const comboCategorySelect = document.getElementById('combo-category');
+        const comboPriceInput = document.getElementById('combo-price');
+        const comboActiveCheckbox = document.getElementById('combo-active');
+        const comboSearchInput = document.getElementById('combo-search');
+        const comboSearchStatus = document.getElementById('combo-search-status');
+        const comboSearchResults = document.getElementById('combo-search-results');
+        const comboResultsList = document.getElementById('combo-results-list');
+        const comboProductsBody = document.getElementById('combo-products-body');
+        const comboSelectedCount = document.getElementById('combo-selected-count');
+        const comboPriceSyncBtn = document.getElementById('combo-price-sync');
+        const comboNormalPrice = document.getElementById('combo-normal-price');
+        const comboSummaryNormal = document.getElementById('combo-summary-normal');
+        const comboSummaryCurrent = document.getElementById('combo-summary-current');
+        const comboDiscount = document.getElementById('combo-discount');
+        const comboGroupCategorySelect = document.getElementById('combo-group-category');
+        const comboGroupQtyInput = document.getElementById('combo-group-qty');
 
         // Modal categorias
         const categoryModal = document.getElementById('category-modal');
@@ -397,18 +652,27 @@
                 description: product.description || '',
                 categoryId: product.categoryId ?? null,
                 categoryName: product.categoryName || '',
+                supplierId: product.supplierId != null ? String(product.supplierId) : null,
+                supplierName: product.supplierName || '',
                 unit: product.unit || '',
                 type: product.type || '',
                 cost: toNumber(product.cost),
                 price: toNumber(product.price),
                 stock: toNumber(product.stock),
                 minStock: toNumber(product.minStock),
-                active: !!product.active
+                active: !!product.active,
+                combo: !!product.combo,
+                comboItems: Array.isArray(product.comboItems) ? product.comboItems.map((id) => Number(id)) : [],
+                comboGroupCategoryId: product.comboGroupCategoryId ?? null,
+                comboGroupCategoryName: product.comboGroupCategoryName || '',
+                comboGroupQuantity: product.comboGroupQuantity != null ? Number(product.comboGroupQuantity) : null
             };
         }
 
         function renderCategoryOptions() {
             const selectedForm = categorySelect.value || '';
+            const selectedCombo = comboCategorySelect ? comboCategorySelect.value || '' : '';
+            const selectedComboGroup = comboGroupCategorySelect ? comboGroupCategorySelect.value || '' : '';
             const selectedFilter = filterCategory.value || 'all';
 
             categorySelect.innerHTML = '<option value="" disabled>Seleccione una categoria</option>';
@@ -423,6 +687,38 @@
                 categorySelect.value = selectedForm;
             } else {
                 categorySelect.selectedIndex = 0;
+            }
+
+            if (comboCategorySelect) {
+                comboCategorySelect.innerHTML = '<option value="" disabled>Seleccione una categoria</option>';
+                categories.filter(cat => cat.activa).forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = String(cat.id);
+                    option.textContent = cat.nombre;
+                    comboCategorySelect.appendChild(option);
+                });
+
+                if (selectedCombo && categories.some(c => String(c.id) === selectedCombo)) {
+                    comboCategorySelect.value = selectedCombo;
+                } else {
+                    comboCategorySelect.selectedIndex = 0;
+                }
+            }
+
+            if (comboGroupCategorySelect) {
+                comboGroupCategorySelect.innerHTML = '<option value="" disabled>Seleccione una categoria</option>';
+                categories.filter(cat => cat.activa).forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = String(cat.id);
+                    option.textContent = cat.nombre;
+                    comboGroupCategorySelect.appendChild(option);
+                });
+
+                if (selectedComboGroup && categories.some(c => String(c.id) === selectedComboGroup)) {
+                    comboGroupCategorySelect.value = selectedComboGroup;
+                } else {
+                    comboGroupCategorySelect.selectedIndex = 0;
+                }
             }
 
             filterCategory.innerHTML = '<option value="all">Todas</option>';
@@ -440,6 +736,25 @@
             }
         }
 
+        function renderSupplierOptions() {
+            if (!supplierSelect) return;
+            const selected = supplierSelect.value || '';
+            supplierSelect.innerHTML = '<option value="">Sin proveedor</option>';
+            suppliers.forEach(supplier => {
+                if (!supplier.active) return;
+                const option = document.createElement('option');
+                option.value = supplier.phone ? String(supplier.phone) : '';
+                option.textContent = supplier.name;
+                supplierSelect.appendChild(option);
+            });
+
+            if (selected && suppliers.some(s => String(s.phone) === selected)) {
+                supplierSelect.value = selected;
+            } else {
+                supplierSelect.value = '';
+            }
+        }
+
         async function loadCategories() {
             try {
                 const response = await fetch('/api/categorias?status=all');
@@ -451,15 +766,33 @@
             }
         }
 
+        async function loadSuppliers() {
+            try {
+                const response = await fetch('/api/proveedores?status=active');
+                if (!response.ok) throw new Error('error');
+                const data = await response.json();
+                suppliers = Array.isArray(data) ? data : [];
+                renderSupplierOptions();
+            } catch (error) {
+                console.error('No se pudieron cargar proveedores', error);
+                suppliers = [];
+                renderSupplierOptions();
+            }
+        }
+
         async function loadProducts() {
             try {
                 const response = await fetch('/api/productos');
                 if (!response.ok) throw new Error('error');
                 const data = await response.json();
                 dbProducts = Array.isArray(data) ? data.map(mapApiProduct) : [];
+                renderComboProductList();
+                renderComboSearchResults();
             } catch (error) {
                 console.error('No se pudieron cargar productos', error);
                 dbProducts = [];
+                renderComboProductList();
+                renderComboSearchResults();
             }
         }
 
@@ -468,12 +801,16 @@
             const search = searchInput.value.toLowerCase();
             const category = filterCategory.value;
             const status = filterStatus.value;
+            const kind = filterKind ? filterKind.value : 'all';
 
             const filteredProducts = dbProducts.filter(p => {
                 const matchSearch = p.name.toLowerCase().includes(search) || p.barcode.includes(search);
                 const matchCategory = category === 'all' || String(p.categoryId || '') === category;
                 const matchStatus = status === 'all' || (status === 'active' && p.active) || (status === 'inactive' && !p.active);
-                return matchSearch && matchCategory && matchStatus;
+                const matchKind = kind === 'all'
+                    || (kind === 'combo' && p.combo)
+                    || (kind === 'product' && !p.combo);
+                return matchSearch && matchCategory && matchStatus && matchKind;
             });
 
             tableBody.innerHTML = '';
@@ -481,9 +818,13 @@
             filteredProducts.forEach(p => {
                 const tr = document.createElement('tr');
                 tr.className = `hover:bg-slate-50 transition-colors cursor-pointer group ${!p.active ? 'bg-slate-50/50 opacity-70' : ''}`;
-                tr.onclick = () => openDrawer('edit', p.id);
+                tr.onclick = () => p.combo ? openComboDrawer('edit', p.id) : openDrawer('edit', p.id);
 
                 const stockColor = p.stock <= p.minStock && p.active ? 'text-rose-600 font-bold' : 'text-slate-900';
+
+                const comboBadge = p.combo
+                    ? '<span class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">Combo</span>'
+                    : '';
 
                 const statusBadge = p.active
                     ? `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">Activo</span>`
@@ -491,7 +832,7 @@
 
                 tr.innerHTML = `
                     <td class="py-3 px-4 text-sm font-medium text-slate-900 border-b border-slate-100">${p.barcode}</td>
-                    <td class="py-3 px-4 text-sm text-slate-800 border-b border-slate-100 font-medium">${p.name}</td>
+                    <td class="py-3 px-4 text-sm text-slate-800 border-b border-slate-100 font-medium">${p.name}${comboBadge}</td>
                     <td class="py-3 px-4 text-sm text-slate-500 border-b border-slate-100">${categoryLabelById(p.categoryId, p.categoryName)}</td>
                     <td class="py-3 px-4 text-sm font-semibold text-emerald-600 border-b border-slate-100 text-right">${formatMoney(p.price)}</td>
                     <td class="py-3 px-4 text-sm border-b border-slate-100 text-right ${stockColor}">${p.stock}</td>
@@ -513,12 +854,17 @@
             form.reset();
             clearOffStatus();
             currentEditId = id;
+            renderSupplierOptions();
+            if (comboDrawer && comboDrawer.classList.contains('drawer-open')) {
+                closeComboDrawerSilent();
+            }
 
             if (mode === 'add') {
                 drawerTitle.innerHTML = `<i class="fa-solid fa-box mr-2 text-emerald-500"></i>Registrar Producto`;
                 btnToggleStatus.classList.add('hidden');
                 document.getElementById('form-id').value = '';
                 activeCheckbox.checked = true;
+                if (supplierSelect) supplierSelect.value = '';
             } else if (mode === 'edit') {
                 drawerTitle.innerHTML = `<i class="fa-solid fa-pen-to-square mr-2 text-amber-500"></i>Modificar Producto`;
                 const product = dbProducts.find(p => p.id === id);
@@ -529,6 +875,9 @@
                     nameInput.value = product.name;
                     descriptionInput.value = product.description || '';
                     categorySelect.value = product.categoryId ? String(product.categoryId) : '';
+                    if (supplierSelect) {
+                        supplierSelect.value = product.supplierId ? String(product.supplierId) : '';
+                    }
                     unitSelect.value = product.unit || '';
                     typeSelect.value = product.type || '';
                     costInput.value = product.cost;
@@ -565,6 +914,459 @@
             clearOffStatus();
         }
 
+        function closeDrawerSilent() {
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            currentEditId = null;
+            clearOffStatus();
+        }
+
+        function closeActiveDrawer() {
+            if (comboDrawer && comboDrawer.classList.contains('drawer-open')) {
+                closeComboDrawer();
+                return;
+            }
+            if (drawer.classList.contains('drawer-open')) {
+                closeDrawer();
+            }
+        }
+
+        // --- COMBOS ---
+        function getComboMode() {
+            const selected = document.querySelector('input[name="combo-mode"]:checked');
+            return selected ? selected.value : 'items';
+        }
+
+        function setComboMode(mode, keepState = false) {
+            const value = mode === 'group' ? 'group' : 'items';
+            comboModeInputs.forEach(input => {
+                input.checked = input.value === value;
+            });
+
+            if (comboItemsSection) {
+                comboItemsSection.classList.toggle('hidden', value === 'group');
+            }
+            if (comboGroupSection) {
+                comboGroupSection.classList.toggle('hidden', value !== 'group');
+            }
+
+            if (!keepState) {
+                if (value === 'group') {
+                    comboSelection = new Set();
+                    if (comboSearchInput) comboSearchInput.value = '';
+                    renderComboSearchResults();
+                    renderComboProductList();
+                } else {
+                    if (comboGroupCategorySelect) comboGroupCategorySelect.value = '';
+                    if (comboGroupQtyInput) comboGroupQtyInput.value = '';
+                }
+            }
+        }
+
+        function openComboDrawer(mode, id = null) {
+            if (!comboForm) return;
+
+            comboForm.reset();
+            currentComboId = id;
+            comboSelection = new Set();
+            if (comboSearchStatus) {
+                comboSearchStatus.textContent = '';
+                comboSearchStatus.classList.add('hidden');
+            }
+            if (comboSearchInput) {
+                comboSearchInput.value = '';
+            }
+            renderComboSearchResults();
+            setComboMode('items', true);
+
+            if (drawer.classList.contains('drawer-open')) {
+                closeDrawerSilent();
+            }
+
+            if (mode === 'add') {
+                comboDrawerTitle.innerHTML = `<i class="fa-solid fa-layer-group mr-2 text-slate-800"></i>Registrar Combo`;
+                comboToggleStatusBtn.classList.add('hidden');
+                document.getElementById('combo-id').value = '';
+                comboActiveCheckbox.checked = true;
+            } else if (mode === 'edit') {
+                comboDrawerTitle.innerHTML = `<i class="fa-solid fa-pen-to-square mr-2 text-amber-500"></i>Modificar Combo`;
+                const product = dbProducts.find(p => p.id === id);
+
+                if (product) {
+                    document.getElementById('combo-id').value = product.id;
+                    comboNameInput.value = product.name;
+                    comboDescriptionInput.value = product.description || '';
+                    comboCategorySelect.value = product.categoryId ? String(product.categoryId) : '';
+                    comboPriceInput.value = product.price;
+                    comboActiveCheckbox.checked = !!product.active;
+                    const hasGroup = product.comboGroupCategoryId != null && product.comboGroupQuantity != null;
+                    if (hasGroup) {
+                        setComboMode('group', true);
+                        if (comboGroupCategorySelect) {
+                            comboGroupCategorySelect.value = String(product.comboGroupCategoryId);
+                        }
+                        if (comboGroupQtyInput) {
+                            comboGroupQtyInput.value = String(product.comboGroupQuantity);
+                        }
+                        comboSelection = new Set();
+                    } else {
+                        setComboMode('items', true);
+                        comboSelection = new Set(Array.isArray(product.comboItems) ? product.comboItems : []);
+                    }
+
+                    comboToggleStatusBtn.classList.remove('hidden');
+                    if (product.active) {
+                        comboToggleStatusBtn.innerHTML = `<i class="fa-solid fa-ban mr-1"></i> Dar de baja`;
+                        comboToggleStatusBtn.className = 'text-rose-600 hover:text-rose-800 font-medium text-sm';
+                    } else {
+                        comboToggleStatusBtn.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Dar de alta`;
+                        comboToggleStatusBtn.className = 'text-emerald-600 hover:text-emerald-800 font-medium text-sm';
+                    }
+                }
+            }
+
+            renderComboProductList();
+            updateComboSummary();
+
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            comboDrawer.classList.remove('drawer-closed');
+            comboDrawer.classList.add('drawer-open');
+
+            setTimeout(() => comboSearchInput && comboSearchInput.focus(), 200);
+        }
+
+        function closeComboDrawer() {
+            if (!comboDrawer) return;
+            comboDrawer.classList.remove('drawer-open');
+            comboDrawer.classList.add('drawer-closed');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+            currentComboId = null;
+            comboSelection = new Set();
+        }
+
+        function closeComboDrawerSilent() {
+            if (!comboDrawer) return;
+            comboDrawer.classList.remove('drawer-open');
+            comboDrawer.classList.add('drawer-closed');
+            currentComboId = null;
+            comboSelection = new Set();
+        }
+
+        function getComboCandidates() {
+            return dbProducts.filter(p => !p.combo && ((p.active && p.stock > 0) || comboSelection.has(p.id)));
+        }
+
+        function getComboSearchResults(query) {
+            const term = (query || '').trim().toLowerCase();
+            if (!term) return [];
+            return getComboCandidates().filter(p => {
+                return p.name.toLowerCase().includes(term) || p.barcode.includes(term);
+            });
+        }
+
+        function renderComboSearchResults() {
+            if (!comboSearchResults || !comboResultsList) return 0;
+            if (getComboMode() === 'group') {
+                comboResultsList.innerHTML = '';
+                comboSearchResults.classList.add('hidden');
+                return 0;
+            }
+
+            const term = (comboSearchInput && comboSearchInput.value ? comboSearchInput.value : '').trim();
+            if (!term) {
+                comboResultsList.innerHTML = '';
+                comboSearchResults.classList.add('hidden');
+                return 0;
+            }
+
+            const results = getComboSearchResults(term);
+            comboResultsList.innerHTML = '';
+            comboSearchResults.classList.remove('hidden');
+
+            if (!results.length) {
+                const empty = document.createElement('li');
+                empty.className = 'px-3 py-3 text-sm text-slate-500 text-center';
+                empty.textContent = 'Sin resultados.';
+                comboResultsList.appendChild(empty);
+                return 0;
+            }
+
+            results.slice(0, 20).forEach(p => {
+                const alreadySelected = comboSelection.has(p.id);
+                const li = document.createElement('li');
+                li.className = `flex items-center justify-between px-3 py-2 ${alreadySelected ? 'text-slate-400' : 'hover:bg-slate-50 cursor-pointer'}`;
+                li.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium text-slate-800">${p.name}</span>
+                        <span class="text-xs text-slate-500">Cod: ${p.barcode || '-'}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-semibold text-emerald-600">${formatMoney(p.price)}</span>
+                        ${alreadySelected
+                            ? '<span class="text-[11px] font-semibold text-emerald-600 uppercase">Agregado</span>'
+                            : '<span class="text-[11px] font-semibold text-emerald-700 uppercase">Agregar</span>'}
+                    </div>
+                `;
+
+                if (!alreadySelected) {
+                    li.addEventListener('click', () => {
+                        comboSelection.add(p.id);
+                        setComboSearchStatus('Producto agregado al combo.', 'success');
+                        renderComboProductList();
+                        renderComboSearchResults();
+                    });
+                }
+
+                comboResultsList.appendChild(li);
+            });
+
+            return results.length;
+        }
+
+        function renderComboProductList() {
+            if (!comboProductsBody) return;
+            if (getComboMode() === 'group') {
+                comboProductsBody.innerHTML = '';
+                updateComboSelectedCount();
+                updateComboSummary();
+                return;
+            }
+
+            const selectedIds = Array.from(comboSelection);
+            const selected = selectedIds
+                .map(id => dbProducts.find(p => p.id === id))
+                .filter(Boolean);
+
+            comboProductsBody.innerHTML = '';
+
+            if (selected.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td colspan="3" class="py-4 px-4 text-sm text-slate-500 text-center">
+                        No hay productos en el combo. Busque por nombre o c&oacute;digo para agregar.
+                    </td>
+                `;
+                comboProductsBody.appendChild(tr);
+                updateComboSelectedCount();
+                updateComboSummary();
+                return;
+            }
+
+            selected.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center">
+                        <input type="checkbox" class="w-4 h-4 rounded border-slate-300 cursor-pointer combo-checkbox" data-id="${p.id}" checked>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="text-sm text-slate-800 font-medium">${p.name}</div>
+                        <div class="text-xs text-slate-500">${p.barcode || '-'}</div>
+                    </td>
+                    <td class="py-3 px-4 text-sm text-right text-emerald-600 font-semibold">${formatMoney(p.price)}</td>
+                `;
+
+                const checkbox = tr.querySelector('.combo-checkbox');
+                checkbox.addEventListener('change', () => {
+                    const id = Number(checkbox.getAttribute('data-id'));
+                    if (checkbox.checked) {
+                        comboSelection.add(id);
+                    } else {
+                        comboSelection.delete(id);
+                    }
+                    renderComboProductList();
+                    renderComboSearchResults();
+                });
+
+                tr.addEventListener('click', (event) => {
+                    if (event.target && event.target.tagName === 'INPUT') return;
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                });
+
+                comboProductsBody.appendChild(tr);
+            });
+
+            updateComboSelectedCount();
+            updateComboSummary();
+        }
+
+        function setComboSearchStatus(message, tone) {
+            if (!comboSearchStatus) return;
+            comboSearchStatus.textContent = message;
+            comboSearchStatus.classList.remove('hidden');
+            comboSearchStatus.classList.remove('text-emerald-600', 'text-rose-600', 'text-slate-500');
+
+            if (tone === 'success') {
+                comboSearchStatus.classList.add('text-emerald-600');
+            } else if (tone === 'error') {
+                comboSearchStatus.classList.add('text-rose-600');
+            } else {
+                comboSearchStatus.classList.add('text-slate-500');
+            }
+        }
+
+        function tryAddComboItemByCode(raw) {
+            if (getComboMode() === 'group') return false;
+            const code = (raw || '').trim();
+            if (!code) return false;
+            const match = getComboCandidates().find(p => p.barcode === code);
+            if (!match) {
+                return false;
+            }
+            comboSelection.add(match.id);
+            renderComboProductList();
+            renderComboSearchResults();
+            return true;
+        }
+
+        function updateComboSelectedCount() {
+            if (!comboSelectedCount) return;
+            comboSelectedCount.textContent = comboSelection.size;
+        }
+
+        function getComboSummary() {
+            const selected = dbProducts.filter(p => comboSelection.has(p.id));
+            const normal = selected.reduce((sum, p) => sum + toNumber(p.price), 0);
+            const cost = selected.reduce((sum, p) => sum + toNumber(p.cost), 0);
+            const comboPrice = toNumber(comboPriceInput ? comboPriceInput.value : 0);
+            return {
+                normal,
+                cost,
+                comboPrice,
+                hasDiscount: normal > 0 && comboPrice < normal
+            };
+        }
+
+        function updateComboSummary() {
+            if (!comboNormalPrice || !comboSummaryNormal || !comboSummaryCurrent) return;
+            const summary = getComboSummary();
+            comboNormalPrice.textContent = summary.normal > 0 ? formatMoney(summary.normal) : '-';
+            comboSummaryNormal.textContent = summary.normal > 0 ? formatMoney(summary.normal) : '-';
+            comboSummaryCurrent.textContent = formatMoney(summary.comboPrice);
+
+            if (comboDiscount) {
+                if (summary.hasDiscount) {
+                    const ahorro = summary.normal - summary.comboPrice;
+                    comboDiscount.textContent = `Precio anterior ${formatMoney(summary.normal)}. Nuevo precio ${formatMoney(summary.comboPrice)}. Ahorro ${formatMoney(ahorro)}.`;
+                    comboDiscount.classList.remove('hidden');
+                } else {
+                    comboDiscount.textContent = '';
+                    comboDiscount.classList.add('hidden');
+                }
+            }
+        }
+
+        function buildComboPayload() {
+            const summary = getComboSummary();
+            const mode = getComboMode();
+            return {
+                barcode: null,
+                name: comboNameInput.value.trim(),
+                description: comboDescriptionInput.value.trim(),
+                categoryId: comboCategorySelect.value ? parseInt(comboCategorySelect.value, 10) : null,
+                unit: 'UN',
+                type: 'Combo',
+                cost: summary.cost,
+                price: toNumber(comboPriceInput.value),
+                stock: 0,
+                minStock: 0,
+                active: !!comboActiveCheckbox.checked,
+                items: mode === 'group' ? [] : Array.from(comboSelection),
+                groupCategoryId: mode === 'group' && comboGroupCategorySelect && comboGroupCategorySelect.value
+                    ? parseInt(comboGroupCategorySelect.value, 10)
+                    : null,
+                groupQuantity: mode === 'group' && comboGroupQtyInput && comboGroupQtyInput.value
+                    ? parseInt(comboGroupQtyInput.value, 10)
+                    : null
+            };
+        }
+
+        async function saveCombo() {
+            const payload = buildComboPayload();
+            const isNew = !currentComboId;
+            const mode = getComboMode();
+            if (mode === 'group') {
+                if (!payload.groupCategoryId) {
+                    alert('Seleccione una categoria para el grupo del combo.');
+                    return;
+                }
+                if (!payload.groupQuantity || payload.groupQuantity <= 0) {
+                    alert('Ingrese una cantidad valida para el grupo del combo.');
+                    return;
+                }
+            } else if (!payload.items.length) {
+                alert('Seleccione al menos un producto para el combo.');
+                return;
+            }
+
+            saveComboBtn.disabled = true;
+            const summary = getComboSummary();
+
+            try {
+                const response = await fetch(currentComboId ? `/api/productos/combos/${currentComboId}` : '/api/productos/combos', {
+                    method: currentComboId ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    throw new Error(message || 'No se pudo guardar el combo.');
+                }
+
+                await loadProducts();
+                renderComboProductList();
+                renderTable();
+                closeComboDrawer();
+
+                if (isNew && summary.hasDiscount) {
+                    alert(`Precio anterior ${formatMoney(summary.normal)}. Nuevo precio ${formatMoney(summary.comboPrice)}.`);
+                }
+            } catch (error) {
+                alert(error.message || 'Error al guardar el combo.');
+            } finally {
+                saveComboBtn.disabled = false;
+            }
+        }
+
+        comboForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveCombo();
+        });
+
+        async function toggleComboStatusFromForm() {
+            if (!currentComboId) return;
+
+            const product = dbProducts.find(p => p.id === currentComboId);
+            if (!product) return;
+
+            const isActive = product.active;
+            const confirmMsg = isActive
+                ? `Estas seguro de dar de baja el combo "${product.name}"? No aparecera en ventas.`
+                : `Reactivar el combo "${product.name}"?`;
+
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const response = await fetch(`/api/productos/${currentComboId}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: !isActive })
+                });
+                if (!response.ok) throw new Error('No se pudo actualizar estado.');
+
+                await loadProducts();
+                renderComboProductList();
+                renderTable();
+                closeComboDrawer();
+            } catch (error) {
+                alert('Error al cambiar estado del combo.');
+            }
+        }
+
         // --- OPENFOODFACTS LOOKUP ---
         function setOffStatus(message, tone) {
             if (!offStatus) return;
@@ -585,6 +1387,13 @@
             if (!offStatus) return;
             offStatus.textContent = '';
             offStatus.classList.add('hidden');
+        }
+
+        function resetOffFields() {
+            nameInput.value = '';
+            descriptionInput.value = '';
+            categorySelect.value = '';
+            unitSelect.value = '';
         }
 
         function mapCategory(categoriesText) {
@@ -618,6 +1427,7 @@
             }
 
             setOffStatus('Buscando en OpenFoodFacts...', 'info');
+            offLastBarcode = code;
 
             try {
                 const response = await fetch(`/api/openfoodfacts/${encodeURIComponent(code)}`);
@@ -632,20 +1442,38 @@
                     return;
                 }
 
-                if (data.name && !nameInput.value) nameInput.value = data.name;
-                if (data.description && !descriptionInput.value) descriptionInput.value = data.description;
+                let filled = 0;
 
-                if (data.categories && !categorySelect.value) {
+                if (data.name) {
+                    nameInput.value = data.name;
+                    filled += 1;
+                }
+                if (data.description) {
+                    descriptionInput.value = data.description;
+                    filled += 1;
+                }
+
+                if (data.categories) {
                     const mapped = mapCategory(data.categories);
-                    if (mapped) categorySelect.value = String(mapped);
+                    if (mapped) {
+                        categorySelect.value = String(mapped);
+                        filled += 1;
+                    }
                 }
 
-                if (data.quantity && !unitSelect.value) {
+                if (data.quantity) {
                     const unit = mapUnitFromQuantity(data.quantity);
-                    if (unit) unitSelect.value = unit;
+                    if (unit) {
+                        unitSelect.value = unit;
+                        filled += 1;
+                    }
                 }
 
-                setOffStatus('Datos cargados desde OpenFoodFacts.', 'success');
+                if (filled > 0) {
+                    setOffStatus('Datos cargados desde OpenFoodFacts.', 'success');
+                } else {
+                    setOffStatus('No se encontraron datos para autocompletar.', 'error');
+                }
             } catch (error) {
                 setOffStatus('Error al consultar OpenFoodFacts.', 'error');
             }
@@ -654,7 +1482,17 @@
         function scheduleOpenFoodFactsLookup() {
             if (offLookupTimer) clearTimeout(offLookupTimer);
             offLookupTimer = setTimeout(() => {
-                if (barcodeInput.value.trim().length >= 6) {
+                const code = barcodeInput.value.trim();
+                if (!code) {
+                    clearOffStatus();
+                    resetOffFields();
+                    offLastBarcode = '';
+                    return;
+                }
+                if (code !== offLastBarcode) {
+                    resetOffFields();
+                }
+                if (code.length >= 6) {
                     lookupOpenFoodFacts();
                 }
             }, 450);
@@ -845,12 +1683,91 @@
             }
         }
 
+        // --- GESTION DE PROVEEDORES ---
+        function setSupplierStatus(message, tone) {
+            if (!supplierStatus) return;
+            supplierStatus.textContent = message;
+            supplierStatus.classList.remove('hidden');
+            supplierStatus.classList.remove('text-emerald-600', 'text-rose-600', 'text-slate-500');
+
+            if (tone === 'success') {
+                supplierStatus.classList.add('text-emerald-600');
+            } else if (tone === 'error') {
+                supplierStatus.classList.add('text-rose-600');
+            } else {
+                supplierStatus.classList.add('text-slate-500');
+            }
+        }
+
+        function clearSupplierStatus() {
+            if (!supplierStatus) return;
+            supplierStatus.textContent = '';
+            supplierStatus.classList.add('hidden');
+        }
+
+        function resetSupplierForm() {
+            if (!supplierForm) return;
+            supplierForm.reset();
+            clearSupplierStatus();
+        }
+
+        function openSupplierModal() {
+            resetSupplierForm();
+            supplierModal.classList.remove('hidden');
+            supplierNameInput && supplierNameInput.focus();
+        }
+
+        function closeSupplierModal() {
+            supplierModal.classList.add('hidden');
+            resetSupplierForm();
+        }
+
+        async function saveSupplier() {
+            const name = supplierNameInput.value.trim();
+            const phone = supplierPhoneInput.value.trim();
+
+            if (!name || !phone) {
+                setSupplierStatus('Complete todos los campos obligatorios.', 'error');
+                return;
+            }
+
+            supplierSaveBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/proveedores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        phone,
+                        active: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    setSupplierStatus(message || 'No se pudo guardar el proveedor.', 'error');
+                    return;
+                }
+
+                const created = await response.json();
+                supplierSelect.value = created && created.phone ? String(created.phone) : '';
+                await loadSuppliers();
+                closeSupplierModal();
+            } catch (error) {
+                setSupplierStatus('Error al guardar el proveedor.', 'error');
+            } finally {
+                supplierSaveBtn.disabled = false;
+            }
+        }
+
         function buildProductPayload() {
             return {
                 barcode: barcodeInput.value.trim(),
                 name: nameInput.value.trim(),
                 description: descriptionInput.value.trim(),
                 categoryId: categorySelect.value ? parseInt(categorySelect.value, 10) : null,
+                supplierId: supplierSelect && supplierSelect.value ? String(supplierSelect.value) : null,
                 unit: unitSelect.value,
                 type: typeSelect.value,
                 cost: toNumber(costInput.value),
@@ -925,6 +1842,7 @@
         searchInput.addEventListener('input', renderTable);
         filterCategory.addEventListener('change', renderTable);
         filterStatus.addEventListener('change', renderTable);
+        if (filterKind) filterKind.addEventListener('change', renderTable);
 
         if (offLookupBtn) offLookupBtn.addEventListener('click', lookupOpenFoodFacts);
         barcodeInput.addEventListener('keydown', (e) => {
@@ -939,6 +1857,56 @@
         if (categorySaveBtn) categorySaveBtn.addEventListener('click', saveCategory);
         if (categoryCancelBtn) categoryCancelBtn.addEventListener('click', closeCategoryModal);
         if (categoryStatusFilter) categoryStatusFilter.addEventListener('change', renderCategoryList);
+        if (supplierManageBtn) supplierManageBtn.addEventListener('click', openSupplierModal);
+        if (supplierSaveBtn) supplierSaveBtn.addEventListener('click', saveSupplier);
+        if (supplierForm) {
+            supplierForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                saveSupplier();
+            });
+        }
+
+        if (comboSearchInput) {
+            comboSearchInput.addEventListener('input', () => {
+                if (comboSearchStatus) {
+                    comboSearchStatus.textContent = '';
+                    comboSearchStatus.classList.add('hidden');
+                }
+                renderComboSearchResults();
+            });
+            comboSearchInput.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const added = tryAddComboItemByCode(comboSearchInput.value);
+                if (added) {
+                    setComboSearchStatus('Producto agregado al combo.', 'success');
+                    comboSearchInput.value = '';
+                    renderComboSearchResults();
+                } else {
+                    const results = renderComboSearchResults();
+                    if (results > 0) {
+                        setComboSearchStatus('Seleccione un producto de la lista.', 'info');
+                    } else {
+                        setComboSearchStatus('Producto no encontrado o sin stock.', 'error');
+                    }
+                }
+            });
+        }
+        if (comboPriceInput) comboPriceInput.addEventListener('input', updateComboSummary);
+        if (comboPriceSyncBtn) {
+            comboPriceSyncBtn.addEventListener('click', () => {
+                const summary = getComboSummary();
+                comboPriceInput.value = summary.normal || 0;
+                updateComboSummary();
+            });
+        }
+        if (comboModeInputs) {
+            comboModeInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    setComboMode(input.value);
+                });
+            });
+        }
 
         document.addEventListener('keydown', (e) => {
             if (!drawer.classList.contains('drawer-open')) return;
@@ -969,8 +1937,10 @@
             renderCategoryOptions();
             renderTable();
             await loadCategories();
+            await loadSuppliers();
             await loadProducts();
             renderTable();
+            updateComboSummary();
         };
 
     </script>

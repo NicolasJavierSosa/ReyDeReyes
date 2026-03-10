@@ -4,18 +4,21 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.List;
 
-public record ProductoRequest(
-	@NotBlank String barcode,
+public record ComboRequest(
+	String barcode,
 	@NotBlank String name,
 	String description,
 	Long categoryId,
-	String supplierId,
 	@NotBlank String unit,
 	@NotBlank String type,
 	@DecimalMin("0.0") BigDecimal cost,
 	@NotNull @DecimalMin("0.0") BigDecimal price,
 	@NotNull @DecimalMin("0.0") BigDecimal stock,
 	@DecimalMin("0.0") BigDecimal minStock,
-	Boolean active
+	Boolean active,
+	List<Long> items,
+	Long groupCategoryId,
+	Integer groupQuantity
 ) {}

@@ -106,23 +106,14 @@
                         <label for="buscar" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscador Manual</label>
                         <div class="flex">
                             <input type="text" id="buscar" placeholder="Buscar por nombre..." class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all border-r-0">
-                            <button type="button" class="bg-slate-100 border border-slate-300 border-l-0 px-4 py-2.5 rounded-r-lg text-slate-600 hover:bg-slate-200 transition-colors">
+                            <button id="search-button" type="button" class="bg-slate-100 border border-slate-300 border-l-0 border-r-0 px-4 py-2.5 text-slate-600 hover:bg-slate-200 transition-colors">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                             </button>
+                            <button id="open-deli-modal" type="button" class="bg-amber-50 border border-slate-300 border-l-0 px-4 py-2.5 rounded-r-lg text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-2" title="Fiambrer&iacute;a">
+                                <i class="fa-solid fa-cheese"></i>
+                                <span class="hidden lg:inline">Fiambrer&iacute;a</span>
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- Categorías -->
-                    <div class="flex-1">
-                        <label for="categoria" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Categorías</label>
-                        <select id="categoria" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer">
-                            <option value="">Todas las categorías</option>
-                            <option value="bebidas">Bebidas</option>
-                            <option value="snacks">Snacks y Golosinas</option>
-                            <option value="limpieza">Limpieza</option>
-                            <option value="almacen">Almacén</option>
-                            <option value="cigarros">Cigarrillos</option>
-                        </select>
                     </div>
 
                     <!-- Botón Agregar (Opcional, usualmente se usa Enter en el código) -->
@@ -186,6 +177,7 @@
                             <span class="font-semibold text-lg" id="summary-discount">$0.00</span>
                         </div>
                     </div>
+                    <div id="summary-discount-detail" class="text-xs text-slate-500 -mt-2 hidden"></div>
                     
                     <div class="flex justify-between items-center text-slate-500 text-sm">
                         <span>Artículos en carrito</span>
@@ -263,6 +255,63 @@
         </div>
     </div>
 
+    <div id="deli-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
+    <div id="deli-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-cheese mr-2 text-amber-500"></i>Fiambrer&iacute;a</h3>
+                <button id="close-deli-modal" type="button" class="text-slate-400 hover:text-slate-700">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscar producto</label>
+                    <input id="deli-search" type="text" placeholder="Ej: queso, jam&oacute;n" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Producto</label>
+                    <select id="deli-product" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all cursor-pointer"></select>
+                    <p id="deli-empty" class="text-xs text-slate-500 mt-2 hidden">No hay productos de fiambrer&iacute;a disponibles. Registre productos con unidad KG o G.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Precio por <span id="deli-unit-label">KG</span></label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input id="deli-unit-price" type="number" step="0.01" min="0" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none" readonly>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Peso</label>
+                        <div class="flex">
+                            <input id="deli-weight" type="number" step="0.001" min="0" placeholder="0.000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all border-r-0">
+                            <select id="deli-weight-unit" class="px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all cursor-pointer">
+                                <option value="KG">kg</option>
+                                <option value="G">g</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Ingrese peso o total y se calcula autom&aacute;ticamente.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input id="deli-total" type="number" step="0.01" min="0" placeholder="0.00" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button id="cancel-deli" type="button" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium">Cancelar</button>
+                    <button id="add-deli" type="button" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">Agregar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
         <!-- Aviso de caja no abierta -->
     <div id="cash-warning" class="fixed bottom-6 left-6 w-[360px] bg-white border border-amber-200 shadow-2xl rounded-xl p-4 z-40 hidden">
         <div class="flex items-start gap-3">
@@ -298,15 +347,21 @@
         let globalDiscount = 0;
         let currentSearchResults = [];
         let searchTimer = null;
+        let productsIndex = new Map();
+        let productsById = new Map();
+        let comboDefinitions = [];
+        let comboIds = new Set();
+        let allProducts = [];
+        let deliSyncing = false;
+        let deliSelectedProductId = null;
 
         const form = document.getElementById('product-form');
         const inputCodigo = document.getElementById('codigo');
         const inputCantidad = document.getElementById('cantidad');
         const inputBuscar = document.getElementById('buscar');
-        const categoriaSelect = document.getElementById('categoria');
         const cartBody = document.getElementById('cart-body');
 
-        const searchButton = inputBuscar.parentElement.querySelector('button[type="button"]');
+        const searchButton = document.getElementById('search-button');
         const searchContainer = inputBuscar.parentElement.parentElement;
         const searchDropdown = document.createElement('div');
         searchDropdown.id = 'search-dropdown';
@@ -322,6 +377,7 @@
         const lastItemPrice = document.getElementById('last-item-price');
         const elSubtotal = document.getElementById('summary-subtotal');
         const elDiscount = document.getElementById('summary-discount');
+        const elDiscountDetail = document.getElementById('summary-discount-detail');
         const elTotal = document.getElementById('summary-total');
         const elItems = document.getElementById('summary-items');
         const checkoutButton = document.getElementById('checkout-button');
@@ -342,6 +398,21 @@
         const openCashNotes = document.getElementById('open-cash-notes');
         const openCashButton = document.getElementById('open-cash-btn');
 
+        const deliButton = document.getElementById('open-deli-modal');
+        const deliOverlay = document.getElementById('deli-overlay');
+        const deliModal = document.getElementById('deli-modal');
+        const closeDeliModalButton = document.getElementById('close-deli-modal');
+        const cancelDeliButton = document.getElementById('cancel-deli');
+        const addDeliButton = document.getElementById('add-deli');
+        const deliSearchInput = document.getElementById('deli-search');
+        const deliProductSelect = document.getElementById('deli-product');
+        const deliEmptyState = document.getElementById('deli-empty');
+        const deliUnitLabel = document.getElementById('deli-unit-label');
+        const deliUnitPriceInput = document.getElementById('deli-unit-price');
+        const deliWeightInput = document.getElementById('deli-weight');
+        const deliWeightUnitSelect = document.getElementById('deli-weight-unit');
+        const deliTotalInput = document.getElementById('deli-total');
+
         const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount || 0);
 
         let cajaOpen = false;
@@ -350,16 +421,46 @@
             return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
         }
 
+        function roundQty(value) {
+            return Math.round((Number(value) + Number.EPSILON) * 1000) / 1000;
+        }
+
+        function normalizeUnit(unit) {
+            return (unit || '').toString().trim().toUpperCase();
+        }
+
+        function isWeightUnit(unit) {
+            const normalized = normalizeUnit(unit);
+            return normalized === 'KG' || normalized === 'G';
+        }
+
+        function parseNumberInput(value) {
+            if (value == null) return null;
+            const normalized = String(value).replace(',', '.').trim();
+            if (!normalized) return null;
+            const number = Number(normalized);
+            return Number.isFinite(number) ? number : null;
+        }
+
+        function normalizeText(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function formatQty(item) {
+            if (!item) return '0';
+            if (item.isWeight) {
+                const unit = normalizeUnit(item.unit);
+                const decimals = unit === 'G' ? 0 : 3;
+                const qty = Number(item.qty) || 0;
+                const display = qty.toFixed(decimals);
+                return unit ? `${display} ${unit}` : display;
+            }
+            return String(item.qty);
+        }
+
         function selectedQty() {
             const qty = parseInt(inputCantidad.value, 10);
             return Number.isFinite(qty) && qty > 0 ? qty : 1;
-        }
-
-        function selectedCategoryId() {
-            const value = categoriaSelect.value.trim();
-            if (!value) return null;
-            const parsed = parseInt(value, 10);
-            return Number.isFinite(parsed) ? parsed : null;
         }
 
         function selectedPaymentMethod() {
@@ -385,7 +486,7 @@
                 openCashNotes.value = '';
             }
             const disabled = !cajaOpen;
-            [inputCodigo, inputCantidad, inputBuscar, categoriaSelect, checkoutButton].forEach((el) => {
+            [inputCodigo, inputCantidad, inputBuscar, checkoutButton, deliButton].forEach((el) => {
                 if (!el) return;
                 el.disabled = disabled;
                 el.classList.toggle('opacity-50', disabled);
@@ -457,22 +558,322 @@
             }
         }
 
-        async function loadCategories() {
-            try {
-                const response = await fetch('/api/categorias');
-                if (!response.ok) throw new Error('No se pudieron cargar categorias');
-                const categories = await response.json();
+        function normalizeProductId(value) {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
 
-                categoriaSelect.innerHTML = '<option value="">Todas las categorias</option>';
-                categories.forEach(cat => {
-                    const option = document.createElement('option');
-                    option.value = String(cat.id);
-                    option.textContent = cat.nombre;
-                    categoriaSelect.appendChild(option);
-                });
+        function buildProductsById(products) {
+            productsById = new Map();
+            allProducts = Array.isArray(products) ? products : [];
+            allProducts.forEach(product => {
+                const id = normalizeProductId(product.id);
+                if (id === null) return;
+                productsById.set(id, product);
+            });
+        }
+
+        function buildComboDefinitions(products) {
+            productsIndex = new Map();
+            comboDefinitions = [];
+            comboIds = new Set();
+
+            (products || []).forEach(product => {
+                const id = normalizeProductId(product.id);
+                if (id === null) return;
+                const price = Number(product.price) || 0;
+                const categoryId = normalizeProductId(product.categoryId);
+                const comboItems = Array.isArray(product.comboItems)
+                    ? product.comboItems.map(normalizeProductId).filter(idItem => idItem !== null)
+                    : [];
+                const comboGroupCategoryId = normalizeProductId(product.comboGroupCategoryId);
+                const comboGroupQuantity = product.comboGroupQuantity != null ? Number(product.comboGroupQuantity) : null;
+                const data = {
+                    id,
+                    name: product.name || '',
+                    price,
+                    categoryId,
+                    combo: !!product.combo,
+                    active: !!product.active,
+                    comboItems,
+                    comboGroupCategoryId,
+                    comboGroupQuantity
+                };
+                productsIndex.set(id, data);
+                if (data.combo) comboIds.add(id);
+            });
+
+            productsIndex.forEach(product => {
+                if (!product.combo || !product.active) return;
+                const hasItems = Array.isArray(product.comboItems) && product.comboItems.length > 0;
+                const hasGroup = product.comboGroupCategoryId != null && product.comboGroupQuantity != null && product.comboGroupQuantity > 0;
+
+                if (hasItems) {
+                    const itemCounts = {};
+                    product.comboItems.forEach(itemId => {
+                        const item = productsIndex.get(itemId);
+                        if (!item || item.combo) return;
+                        const key = String(itemId);
+                        itemCounts[key] = (itemCounts[key] || 0) + 1;
+                    });
+
+                    const itemIds = Object.keys(itemCounts);
+                    if (itemIds.length) {
+                        let sumItems = 0;
+                        itemIds.forEach(idStr => {
+                            const item = productsIndex.get(Number(idStr));
+                            if (!item) return;
+                            sumItems += (Number(item.price) || 0) * itemCounts[idStr];
+                        });
+
+                        const comboPrice = Number(product.price) || 0;
+                        const discountPerCombo = roundMoney(Math.max(sumItems - comboPrice, 0));
+                        comboDefinitions.push({
+                            type: 'items',
+                            id: product.id,
+                            name: product.name || '',
+                            comboPrice,
+                            itemsValue: roundMoney(sumItems),
+                            itemCounts,
+                            discountPerCombo
+                        });
+                    }
+                }
+
+                if (hasGroup) {
+                    comboDefinitions.push({
+                        type: 'group',
+                        id: product.id,
+                        name: product.name || '',
+                        comboPrice: Number(product.price) || 0,
+                        groupCategoryId: product.comboGroupCategoryId,
+                        groupQuantity: product.comboGroupQuantity
+                    });
+                }
+            });
+        }
+
+        async function loadProductsForCombos() {
+            try {
+                const response = await fetch('/api/productos');
+                if (!response.ok) throw new Error('No se pudieron cargar productos');
+                const data = await response.json();
+                const products = Array.isArray(data) ? data : [];
+                buildProductsById(products);
+                buildComboDefinitions(products);
+                renderDeliProducts();
+                updateUI();
             } catch (error) {
                 console.error(error);
+                buildProductsById([]);
+                buildComboDefinitions([]);
+                renderDeliProducts();
+                updateUI();
             }
+        }
+
+        function getSelectedDeliProduct() {
+            if (!deliProductSelect) return null;
+            const id = normalizeProductId(deliProductSelect.value);
+            if (id === null) return null;
+            deliSelectedProductId = id;
+            return productsById.get(id) || null;
+        }
+
+        function getDeliProducts() {
+            const query = deliSearchInput ? normalizeText(deliSearchInput.value) : '';
+            return (allProducts || [])
+                .filter(product => {
+                    if (!product || product.combo) return false;
+                    if (product.active === false) return false;
+                    if (!isWeightUnit(product.unit)) return false;
+                    if (!query) return true;
+                    const text = `${product.name || ''} ${product.barcode || ''}`.toLowerCase();
+                    return text.includes(query);
+                })
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        }
+
+        function renderDeliProducts() {
+            if (!deliProductSelect) return;
+            const products = getDeliProducts();
+            deliProductSelect.innerHTML = '';
+
+            if (!products.length) {
+                if (deliEmptyState) deliEmptyState.classList.remove('hidden');
+                deliProductSelect.disabled = true;
+                if (deliUnitPriceInput) deliUnitPriceInput.value = '';
+                if (deliWeightInput) deliWeightInput.value = '';
+                if (deliTotalInput) deliTotalInput.value = '';
+                if (addDeliButton) addDeliButton.disabled = true;
+                return;
+            }
+
+            if (deliEmptyState) deliEmptyState.classList.add('hidden');
+            deliProductSelect.disabled = false;
+            if (addDeliButton) addDeliButton.disabled = false;
+
+            products.forEach(product => {
+                const option = document.createElement('option');
+                option.value = String(product.id);
+                const unitLabel = normalizeUnit(product.unit);
+                option.textContent = `${product.name}${unitLabel ? ` · ${unitLabel}` : ''}`;
+                deliProductSelect.appendChild(option);
+            });
+
+            const preferredId = deliSelectedProductId && products.some(p => p.id === deliSelectedProductId)
+                ? deliSelectedProductId
+                : products[0].id;
+            deliProductSelect.value = String(preferredId);
+            updateDeliProductDetails();
+        }
+
+        function updateDeliProductDetails() {
+            const product = getSelectedDeliProduct();
+            if (!product) return;
+            const unit = normalizeUnit(product.unit) || 'KG';
+            if (deliUnitLabel) deliUnitLabel.textContent = unit;
+            if (deliUnitPriceInput) {
+                const price = Number(product.price) || 0;
+                deliUnitPriceInput.value = price.toFixed(2);
+            }
+            if (deliWeightUnitSelect) {
+                deliWeightUnitSelect.value = unit === 'G' ? 'G' : 'KG';
+            }
+            updateDeliWeightInputUI();
+            if (deliWeightInput) deliWeightInput.value = '';
+            if (deliTotalInput) deliTotalInput.value = '';
+        }
+
+        function updateDeliWeightInputUI() {
+            if (!deliWeightInput || !deliWeightUnitSelect) return;
+            const unit = normalizeUnit(deliWeightUnitSelect.value);
+            if (unit === 'G') {
+                deliWeightInput.step = '1';
+                deliWeightInput.placeholder = '0';
+            } else {
+                deliWeightInput.step = '0.001';
+                deliWeightInput.placeholder = '0.000';
+            }
+        }
+
+        function getDeliBaseQtyFromWeight() {
+            const product = getSelectedDeliProduct();
+            if (!product) return null;
+            const weight = parseNumberInput(deliWeightInput ? deliWeightInput.value : '');
+            if (weight == null || weight <= 0) return null;
+            const baseUnit = normalizeUnit(product.unit);
+            const inputUnit = normalizeUnit(deliWeightUnitSelect ? deliWeightUnitSelect.value : baseUnit);
+            if (baseUnit === inputUnit) return weight;
+            if (baseUnit === 'KG' && inputUnit === 'G') return weight / 1000;
+            if (baseUnit === 'G' && inputUnit === 'KG') return weight * 1000;
+            return weight;
+        }
+
+        function syncDeliTotalFromWeight() {
+            if (deliSyncing) return;
+            const product = getSelectedDeliProduct();
+            if (!product || !deliTotalInput) return;
+            const qty = getDeliBaseQtyFromWeight();
+            if (qty == null) {
+                deliTotalInput.value = '';
+                return;
+            }
+            const price = Number(product.price) || 0;
+            if (price <= 0) {
+                deliTotalInput.value = '';
+                return;
+            }
+            deliSyncing = true;
+            deliTotalInput.value = roundMoney(price * qty).toFixed(2);
+            deliSyncing = false;
+        }
+
+        function syncDeliWeightFromTotal() {
+            if (deliSyncing) return;
+            const product = getSelectedDeliProduct();
+            if (!product || !deliWeightInput) return;
+            const total = parseNumberInput(deliTotalInput ? deliTotalInput.value : '');
+            const price = Number(product.price) || 0;
+            if (total == null || total <= 0 || price <= 0) {
+                deliWeightInput.value = '';
+                return;
+            }
+            const baseUnit = normalizeUnit(product.unit);
+            const inputUnit = normalizeUnit(deliWeightUnitSelect ? deliWeightUnitSelect.value : baseUnit);
+            let qtyBase = roundQty(total / price);
+            let displayQty = qtyBase;
+            if (baseUnit === 'KG' && inputUnit === 'G') displayQty = qtyBase * 1000;
+            if (baseUnit === 'G' && inputUnit === 'KG') displayQty = qtyBase / 1000;
+            deliSyncing = true;
+            const decimals = inputUnit === 'G' ? 0 : 3;
+            deliWeightInput.value = Number(roundQty(displayQty)).toFixed(decimals);
+            deliSyncing = false;
+        }
+
+        function openDeliModal() {
+            if (!cajaOpen) {
+                setCajaOpenState(false);
+                return;
+            }
+            if (deliOverlay) deliOverlay.classList.remove('hidden');
+            if (deliModal) {
+                deliModal.classList.remove('hidden');
+                deliModal.classList.add('flex');
+            }
+            if (deliSearchInput) {
+                deliSearchInput.value = '';
+                deliSearchInput.focus();
+            }
+            renderDeliProducts();
+        }
+
+        function closeDeliModal() {
+            if (deliOverlay) deliOverlay.classList.add('hidden');
+            if (deliModal) {
+                deliModal.classList.add('hidden');
+                deliModal.classList.remove('flex');
+            }
+        }
+
+        function addDeliItem() {
+            if (!cajaOpen) {
+                setCajaOpenState(false);
+                return;
+            }
+            const product = getSelectedDeliProduct();
+            if (!product) {
+                alert('Seleccione un producto.');
+                return;
+            }
+            const price = Number(product.price) || 0;
+            if (price <= 0) {
+                alert('El producto no tiene precio de venta.');
+                return;
+            }
+            let qty = getDeliBaseQtyFromWeight();
+            if (qty == null) {
+                const total = parseNumberInput(deliTotalInput ? deliTotalInput.value : '');
+                if (total != null && total > 0) {
+                    qty = roundQty(total / price);
+                }
+            }
+            if (qty == null || qty <= 0) {
+                alert('Ingrese un peso o total valido.');
+                return;
+            }
+            const unit = normalizeUnit(product.unit);
+            addProductToCart(product.id, product.barcode || String(product.id), product.name, price, roundQty(qty), { unit, isWeight: true });
+            closeDeliModal();
+            if (inputCodigo) inputCodigo.focus();
+        }
+
+        function isDeliModalOpen() {
+            return deliModal && !deliModal.classList.contains('hidden');
+        }
+
+        function isPaymentModalOpen() {
+            return paymentModal && !paymentModal.classList.contains('hidden');
         }
 
         async function findProductByCode(code) {
@@ -490,8 +891,6 @@
             }
 
             const params = new URLSearchParams({ q: query });
-            const categoryId = selectedCategoryId();
-            if (categoryId !== null) params.append('categoriaId', String(categoryId));
 
             const response = await fetch(`/api/productos/venta/buscar?${params.toString()}`);
             if (!response.ok) throw new Error('No se pudo buscar productos');
@@ -529,19 +928,34 @@
             searchDropdown.classList.add('hidden');
         }
 
-        function addProductToCart(code, name, price, qty) {
+        function addProductToCart(productId, code, name, price, qty, meta = {}) {
             const existingItemIndex = cart.findIndex(item => item.code === code);
+            const safeQty = roundQty(Number(qty) || 0);
+            const unit = meta.unit ? normalizeUnit(meta.unit) : null;
+            const isWeight = !!meta.isWeight;
+            const unitPrice = Number(price) || 0;
 
             if (existingItemIndex !== -1) {
-                cart[existingItemIndex].qty += qty;
-                cart[existingItemIndex].subtotal = cart[existingItemIndex].qty * cart[existingItemIndex].price;
+                const current = cart[existingItemIndex];
+                current.qty = roundQty((Number(current.qty) || 0) + safeQty);
+                current.subtotal = roundMoney(current.qty * current.price);
+                if (!current.productId && productId != null) {
+                    current.productId = productId;
+                }
+                if (isWeight) {
+                    current.isWeight = true;
+                    if (unit) current.unit = unit;
+                }
             } else {
                 cart.unshift({
+                    productId: productId != null ? productId : null,
                     code,
                     name,
-                    price: Number(price) || 0,
-                    qty,
-                    subtotal: (Number(price) || 0) * qty
+                    price: unitPrice,
+                    qty: safeQty,
+                    subtotal: roundMoney(unitPrice * safeQty),
+                    isWeight,
+                    unit
                 });
             }
 
@@ -565,7 +979,7 @@
                 return;
             }
 
-            addProductToCart(product.barcode || code, product.name, product.price, qty);
+            addProductToCart(product.id, product.barcode || code, product.name, product.price, qty);
             inputCodigo.value = '';
             inputCantidad.value = '1';
             inputCodigo.focus();
@@ -576,10 +990,124 @@
                 setCajaOpenState(false);
                 return;
             }
-            addProductToCart(product.barcode || String(product.id), product.name, product.price, selectedQty());
+            addProductToCart(product.id, product.barcode || String(product.id), product.name, product.price, selectedQty());
             inputBuscar.value = '';
             renderSearchResults([]);
             inputCodigo.focus();
+        }
+
+        function calculateComboDiscountDetails() {
+            if (!comboDefinitions.length || cart.length === 0) {
+                return { discount: 0, applied: [] };
+            }
+
+            const available = new Map();
+            cart.forEach(item => {
+                const id = normalizeProductId(item.productId);
+                if (id === null) return;
+                if (comboIds.has(id)) return;
+                const qty = Number(item.qty) || 0;
+                if (qty <= 0) return;
+                available.set(id, (available.get(id) || 0) + qty);
+            });
+
+            if (available.size === 0) {
+                return { discount: 0, applied: [] };
+            }
+
+            let discount = 0;
+            const applied = [];
+            const itemCombos = comboDefinitions
+                .filter(combo => combo.type === 'items' && combo.discountPerCombo > 0)
+                .sort((a, b) => b.discountPerCombo - a.discountPerCombo);
+
+            itemCombos.forEach(combo => {
+                const itemIds = Object.keys(combo.itemCounts || {});
+                if (!itemIds.length) return;
+
+                let maxCount = Infinity;
+                itemIds.forEach(idStr => {
+                    const id = Number(idStr);
+                    const required = combo.itemCounts[idStr];
+                    const have = available.get(id) || 0;
+                    maxCount = Math.min(maxCount, Math.floor(have / required));
+                });
+
+                if (!Number.isFinite(maxCount) || maxCount <= 0) return;
+
+                const itemsValueTotal = (combo.itemsValue || 0) * maxCount;
+                const comboPriceTotal = (combo.comboPrice || 0) * maxCount;
+                discount += combo.discountPerCombo * maxCount;
+                applied.push({
+                    name: combo.name,
+                    count: maxCount,
+                    comboPriceTotal,
+                    itemsValueTotal
+                });
+
+                itemIds.forEach(idStr => {
+                    const id = Number(idStr);
+                    const required = combo.itemCounts[idStr];
+                    const remaining = (available.get(id) || 0) - required * maxCount;
+                    if (remaining <= 0) {
+                        available.delete(id);
+                    } else {
+                        available.set(id, remaining);
+                    }
+                });
+            });
+
+            let remainingItems = [];
+            available.forEach((qty, id) => {
+                const product = productsIndex.get(id);
+                if (!product || product.combo) return;
+                const price = Number(product.price) || 0;
+                for (let i = 0; i < qty; i += 1) {
+                    remainingItems.push({
+                        categoryId: product.categoryId,
+                        price
+                    });
+                }
+            });
+
+            const groupCombos = comboDefinitions
+                .filter(combo => combo.type === 'group' && combo.groupCategoryId != null && combo.groupQuantity > 0);
+
+            groupCombos.forEach(combo => {
+                const candidates = remainingItems
+                    .filter(item => item.categoryId === combo.groupCategoryId)
+                    .sort((a, b) => b.price - a.price);
+                if (candidates.length < combo.groupQuantity) return;
+
+                let used = [];
+                let itemsValueTotal = 0;
+                let appliedCount = 0;
+
+                while (candidates.length >= combo.groupQuantity) {
+                    const group = candidates.splice(0, combo.groupQuantity);
+                    const sum = group.reduce((acc, item) => acc + item.price, 0);
+                    if (sum <= combo.comboPrice) {
+                        break;
+                    }
+                    appliedCount += 1;
+                    itemsValueTotal += sum;
+                    used = used.concat(group);
+                }
+
+                if (appliedCount > 0) {
+                    const comboPriceTotal = (combo.comboPrice || 0) * appliedCount;
+                    discount += itemsValueTotal - comboPriceTotal;
+                    applied.push({
+                        name: combo.name,
+                        count: appliedCount,
+                        comboPriceTotal,
+                        itemsValueTotal
+                    });
+                    remainingItems = remainingItems.filter(item => !used.includes(item));
+                }
+            });
+
+            return { discount: roundMoney(discount), applied };
         }
 
         function removeProduct(index) {
@@ -708,14 +1236,14 @@
 
             cart.forEach((item, index) => {
                 subtotalAcc += item.subtotal;
-                totalItems += item.qty;
+                totalItems += item.isWeight ? 1 : (Number(item.qty) || 0);
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition-colors group';
                 tr.innerHTML = `
                     <td class="py-3 px-4 text-sm font-medium text-slate-900 border-b border-slate-100">${item.code}</td>
                     <td class="py-3 px-4 text-sm text-slate-700 border-b border-slate-100">${item.name}</td>
-                    <td class="py-3 px-4 text-sm font-semibold text-slate-900 border-b border-slate-100 text-center">${item.qty}</td>
+                    <td class="py-3 px-4 text-sm font-semibold text-slate-900 border-b border-slate-100 text-center">${formatQty(item)}</td>
                     <td class="py-3 px-4 text-sm text-slate-600 border-b border-slate-100 text-right">${formatMoney(item.price)}</td>
                     <td class="py-3 px-4 text-sm font-bold text-slate-900 border-b border-slate-100 text-right">${formatMoney(item.subtotal)}</td>
                     <td class="py-3 px-4 text-center border-b border-slate-100">
@@ -727,9 +1255,24 @@
                 cartBody.appendChild(tr);
             });
 
+            const comboDiscount = calculateComboDiscountDetails();
+            globalDiscount = Math.min(comboDiscount.discount, subtotalAcc);
             const total = Math.max(subtotalAcc - globalDiscount, 0);
             elSubtotal.textContent = formatMoney(subtotalAcc);
             elDiscount.textContent = formatMoney(globalDiscount);
+            if (elDiscountDetail) {
+                if (globalDiscount > 0 && comboDiscount.applied.length > 0) {
+                    const lines = comboDiscount.applied.map(entry => {
+                        const qtyLabel = entry.count > 1 ? ` x${entry.count}` : '';
+                        return `Combo ${entry.name}: ${formatMoney(entry.comboPriceTotal)} (antes ${formatMoney(entry.itemsValueTotal)})${qtyLabel}`;
+                    });
+                    elDiscountDetail.innerHTML = lines.join('<br>');
+                    elDiscountDetail.classList.remove('hidden');
+                } else {
+                    elDiscountDetail.textContent = '';
+                    elDiscountDetail.classList.add('hidden');
+                }
+            }
             elTotal.textContent = formatMoney(total);
             elItems.textContent = totalItems;
             lastItemPrice.textContent = formatMoney(total);
@@ -773,14 +1316,46 @@
             });
         }
 
-        categoriaSelect.addEventListener('change', async () => {
-            if (!inputBuscar.value.trim()) return;
-            try {
-                await searchProductsByName();
-            } catch (error) {
-                renderSearchResults([]);
-            }
-        });
+        if (deliButton) {
+            deliButton.addEventListener('click', openDeliModal);
+        }
+        if (closeDeliModalButton) {
+            closeDeliModalButton.addEventListener('click', closeDeliModal);
+        }
+        if (cancelDeliButton) {
+            cancelDeliButton.addEventListener('click', closeDeliModal);
+        }
+        if (deliOverlay) {
+            deliOverlay.addEventListener('click', closeDeliModal);
+        }
+        if (addDeliButton) {
+            addDeliButton.addEventListener('click', addDeliItem);
+        }
+        if (deliSearchInput) {
+            deliSearchInput.addEventListener('input', () => {
+                deliSelectedProductId = null;
+                renderDeliProducts();
+            });
+        }
+        if (deliProductSelect) {
+            deliProductSelect.addEventListener('change', updateDeliProductDetails);
+        }
+        if (deliWeightInput) {
+            deliWeightInput.addEventListener('input', syncDeliTotalFromWeight);
+        }
+        if (deliTotalInput) {
+            deliTotalInput.addEventListener('input', syncDeliWeightFromTotal);
+        }
+        if (deliWeightUnitSelect) {
+            deliWeightUnitSelect.addEventListener('change', () => {
+                updateDeliWeightInputUI();
+                if (deliWeightInput && deliWeightInput.value) {
+                    syncDeliTotalFromWeight();
+                } else if (deliTotalInput && deliTotalInput.value) {
+                    syncDeliWeightFromTotal();
+                }
+            });
+        }
 
         document.addEventListener('click', (event) => {
             if (!searchContainer.contains(event.target)) {
@@ -790,13 +1365,21 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'F12') {
+                if (isDeliModalOpen()) return;
                 e.preventDefault();
                 openPaymentModal();
             }
             if (e.key === 'Escape') {
-                closePaymentModal();
+                if (isDeliModalOpen()) {
+                    closeDeliModal();
+                    return;
+                }
+                if (isPaymentModalOpen()) {
+                    closePaymentModal();
+                }
             }
             if (e.key.length === 1 && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+                if (isDeliModalOpen() || isPaymentModalOpen()) return;
                 inputCodigo.focus();
             }
         });
@@ -838,7 +1421,7 @@
         });
 
         window.onload = async () => {
-            await loadCategories();
+            await loadProductsForCombos();
             await checkCajaEstado();
             if (cajaOpen) {
                 inputCodigo.focus();
