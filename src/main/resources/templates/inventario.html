@@ -262,11 +262,12 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-1">Precio Venta *</label>
+                        <label id="form-price-label" class="block text-sm font-semibold text-slate-700 mb-1">Precio Venta *</label>
                         <div class="relative">
                             <span class="absolute left-3 top-2.5 text-slate-400">$</span>
                             <input type="number" id="form-price" step="0.01" min="0" required class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                         </div>
+                        <p id="form-price-help" class="text-xs text-slate-500 mt-1 hidden">Para fiambreria, el precio es por kilo.</p>
                     </div>
                 </div>
 
@@ -581,6 +582,8 @@
         const typeSelect = document.getElementById('form-type');
         const costInput = document.getElementById('form-cost');
         const priceInput = document.getElementById('form-price');
+        const priceLabel = document.getElementById('form-price-label');
+        const priceHelp = document.getElementById('form-price-help');
         const stockInput = document.getElementById('form-stock');
         const minStockInput = document.getElementById('form-min-stock');
         const activeCheckbox = document.getElementById('form-active');
@@ -637,6 +640,26 @@
             if (!name) return null;
             const found = categories.find(c => c.nombre && c.nombre.toLowerCase() === name.toLowerCase());
             return found ? found.id : null;
+        }
+
+        function isFiambreriaSelected() {
+            if (!categorySelect) return false;
+            const option = categorySelect.selectedOptions ? categorySelect.selectedOptions[0] : null;
+            const name = option ? option.textContent : '';
+            return name.toLowerCase().includes('fiambr');
+        }
+
+        function updateFiambreriaPricingUI() {
+            if (!priceLabel || !priceHelp) return;
+            const isFiambreria = isFiambreriaSelected();
+            priceLabel.textContent = isFiambreria ? 'Precio por Kilo *' : 'Precio Venta *';
+            priceHelp.classList.toggle('hidden', !isFiambreria);
+            if (isFiambreria && unitSelect) {
+                const unit = (unitSelect.value || '').toUpperCase();
+                if (unit !== 'KG' && unit !== 'G') {
+                    unitSelect.value = 'KG';
+                }
+            }
         }
 
         function toNumber(value) {
@@ -734,6 +757,8 @@
             } else {
                 filterCategory.value = 'all';
             }
+
+            updateFiambreriaPricingUI();
         }
 
         function renderSupplierOptions() {
@@ -897,6 +922,7 @@
                 }
             }
 
+            updateFiambreriaPricingUI();
             overlay.classList.remove('hidden');
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             drawer.classList.remove('drawer-closed');
@@ -1857,6 +1883,7 @@
         if (categorySaveBtn) categorySaveBtn.addEventListener('click', saveCategory);
         if (categoryCancelBtn) categoryCancelBtn.addEventListener('click', closeCategoryModal);
         if (categoryStatusFilter) categoryStatusFilter.addEventListener('change', renderCategoryList);
+        if (categorySelect) categorySelect.addEventListener('change', updateFiambreriaPricingUI);
         if (supplierManageBtn) supplierManageBtn.addEventListener('click', openSupplierModal);
         if (supplierSaveBtn) supplierSaveBtn.addEventListener('click', saveSupplier);
         if (supplierForm) {

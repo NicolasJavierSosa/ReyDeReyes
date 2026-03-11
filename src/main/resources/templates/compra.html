@@ -122,7 +122,11 @@
             </div>
 
             <!-- Botones de Acción -->
-            <div>
+            <div class="flex items-center gap-3">
+                <button id="btn-requests-open" type="button" class="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg font-semibold transition-colors shadow-sm flex items-center hover:bg-slate-50">
+                    <i class="fa-solid fa-clipboard-check mr-2 text-emerald-500"></i> Solicitudes
+                    <span id="requests-count" class="ml-2 bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+                </button>
                 <button id="btn-supplier-open" type="button" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center">
                     <i class="fa-solid fa-plus mr-2"></i> Nuevo Proveedor
                 </button>
@@ -207,8 +211,8 @@
                 <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
                     Cerrar
                 </button>
-                <button type="button" onclick="generateOrderMessage()" class="px-5 py-2.5 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all font-medium flex items-center">
-                    <i class="fa-brands fa-whatsapp mr-2 text-lg"></i> Armar Mensaje
+                <button type="button" onclick="sendWhatsAppOrder()" class="px-5 py-2.5 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-500/30 transition-all font-medium flex items-center">
+                    <i class="fa-brands fa-whatsapp mr-2 text-lg"></i> Enviar por WhatsApp
                 </button>
             </div>
         </div>
@@ -232,6 +236,22 @@
                 <button onclick="copyAndClose()" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg shadow-md transition-all flex items-center">
                     <i class="fa-regular fa-copy mr-2"></i> Copiar Mensaje
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SOLICITUDES DE COMPRA -->
+    <div id="requests-modal" class="fixed inset-0 z-[60] hidden">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeRequestsModal()"></div>
+        <div class="relative mx-auto mt-10 w-[960px] max-w-[95vw] bg-white rounded-xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center">
+                <h3 class="font-bold flex items-center"><i class="fa-solid fa-clipboard-check mr-2 text-emerald-400"></i> Solicitudes de Compra</h3>
+                <button type="button" onclick="closeRequestsModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="requests-list" class="p-6 overflow-y-auto max-h-[70vh]">
+                <!-- Solicitudes generadas por JS -->
             </div>
         </div>
     </div>
@@ -273,6 +293,7 @@
         // --- DATOS (API) ---
         let dbSuppliers = [];
         let dbProducts = [];
+        let dbRequests = [];
 
         // Variables de estado
         let currentSupplier = null;
@@ -295,6 +316,10 @@
         const supplierSaveBtn = document.getElementById('btn-supplier-save');
         const supplierNameInput = document.getElementById('supplier-name');
         const supplierPhoneInput = document.getElementById('supplier-phone');
+        const requestsModal = document.getElementById('requests-modal');
+        const requestsList = document.getElementById('requests-list');
+        const requestsOpenBtn = document.getElementById('btn-requests-open');
+        const requestsCountBadge = document.getElementById('requests-count');
 
         // --- INICIALIZACIÓN Y KPIs ---
         function mapApiProduct(product) {
@@ -344,6 +369,159 @@
             }
         }
 
+        async function loadRequests() {
+            try {
+                const response = await fetch('/api/solicitudes-compra?status=pending');
+                if (!response.ok) throw new Error('No se pudieron cargar solicitudes');
+                const data = await response.json();
+                dbRequests = Array.isArray(data) ? data : [];
+            } catch (error) {
+                console.error(error);
+                dbRequests = [];
+            }
+        }
+
+        function updateRequestsCount() {
+            if (requestsCountBadge) {
+                requestsCountBadge.textContent = dbRequests.length;
+            }
+        }
+
+        function openRequestsModal() {
+            loadRequests().then(() => {
+                renderRequests();
+                updateRequestsCount();
+                if (requestsModal) {
+                    requestsModal.classList.remove('hidden');
+                }
+            });
+        }
+
+        function closeRequestsModal() {
+            if (requestsModal) {
+                requestsModal.classList.add('hidden');
+            }
+        }
+
+        function renderRequests() {
+            if (!requestsList) return;
+            requestsList.innerHTML = '';
+
+            if (!dbRequests || dbRequests.length === 0) {
+                requestsList.innerHTML = '<p class="text-sm text-slate-500">No hay solicitudes pendientes.</p>';
+                return;
+            }
+
+            dbRequests.forEach(request => {
+                const status = request.status || 'SOLICITADA';
+                let statusClass = 'bg-amber-100 text-amber-700';
+                let statusLabel = 'Solicitada';
+                if (status === 'RECIBIDA') {
+                    statusClass = 'bg-emerald-100 text-emerald-700';
+                    statusLabel = 'Recibida';
+                } else if (status === 'PARCIAL') {
+                    statusClass = 'bg-rose-100 text-rose-700';
+                    statusLabel = 'Parcial';
+                }
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'border border-slate-200 rounded-xl p-5 mb-4 bg-white shadow-sm';
+                wrapper.dataset.requestId = request.id;
+
+                const itemsRows = (request.items || []).map(item => `
+                    <tr class="border-b border-slate-100">
+                        <td class="py-2 pr-2 text-sm text-slate-800">${item.productName || ''}</td>
+                        <td class="py-2 text-right text-sm text-slate-600">${formatQty(item.qtyRequested)}</td>
+                        <td class="py-2 text-right">
+                            <input type="number" min="0" step="0.001" value="${Number(item.qtyReceived || 0)}" data-item-id="${item.id}" class="received-input w-24 px-2 py-1 border border-slate-300 rounded text-right text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </td>
+                    </tr>
+                `).join('');
+
+                wrapper.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-sm text-slate-500">Proveedor</p>
+                            <p class="text-base font-bold text-slate-800">${request.supplierName || ''}</p>
+                            <p class="text-xs text-slate-400 mt-1">${request.dateTime || ''}</p>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded-full ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="text-xs uppercase text-slate-400 border-b border-slate-100">
+                                    <th class="pb-2 pr-2">Producto</th>
+                                    <th class="pb-2 text-right">Solicitado</th>
+                                    <th class="pb-2 text-right">Recibido</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itemsRows}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="flex justify-end mt-4">
+                        <button type="button" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-semibold" onclick="submitReception(${request.id})">
+                            Guardar recepcion
+                        </button>
+                    </div>
+                `;
+
+                requestsList.appendChild(wrapper);
+            });
+        }
+
+        async function submitReception(requestId) {
+            const card = requestsList.querySelector(`[data-request-id="${requestId}"]`);
+            if (!card) return;
+            const inputs = card.querySelectorAll('.received-input');
+            const items = Array.from(inputs).map(input => ({
+                itemId: Number(input.getAttribute('data-item-id')),
+                receivedQty: Number(input.value || 0)
+            }));
+
+            try {
+                const response = await fetch(`/api/solicitudes-compra/${requestId}/recepcion`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+                if (!response.ok) {
+                    const message = await response.text();
+                    alert(message || 'No se pudo guardar la recepcion.');
+                    return;
+                }
+                await response.json();
+                await Promise.all([loadRequests(), loadProducts()]);
+                renderRequests();
+                renderSuppliers();
+                updateKpis();
+                updateRequestsCount();
+            } catch (error) {
+                console.error(error);
+                alert('Error al guardar la recepcion.');
+            }
+        }
+
+        async function createSolicitud(payload) {
+            try {
+                const response = await fetch('/api/solicitudes-compra', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    throw new Error('No se pudo registrar la solicitud');
+                }
+                await response.json();
+                await loadRequests();
+                updateRequestsCount();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
         function updateKpis() {
             const criticalCount = dbProducts.filter(p => p.stock <= p.minStock).length;
             document.getElementById('kpi-suppliers').textContent = dbSuppliers.length;
@@ -351,9 +529,10 @@
         }
 
         async function init() {
-            await Promise.all([loadSuppliers(), loadProducts()]);
+            await Promise.all([loadSuppliers(), loadProducts(), loadRequests()]);
             renderSuppliers();
             updateKpis();
+            updateRequestsCount();
         }
 
         // --- RENDERIZAR TABLA PROVEEDORES ---
@@ -423,7 +602,7 @@
                 tr.className = `border-b border-slate-100 ${rowClass}`;
                 tr.innerHTML = `
                     <td class="py-3 px-6 text-center">
-                        <input type="checkbox" class="w-4 h-4 rounded border-slate-300 custom-checkbox cursor-pointer product-checkbox" ${isCritical ? 'checked' : ''} onchange="updateSelectedCount()" data-name="${p.name}">
+                        <input type="checkbox" class="w-4 h-4 rounded border-slate-300 custom-checkbox cursor-pointer product-checkbox" ${isCritical ? 'checked' : ''} onchange="updateSelectedCount()" data-id="${p.id}" data-name="${p.name}">
                     </td>
                     <td class="py-3 px-2 text-sm font-semibold text-slate-800">${p.name}</td>
                     <td class="py-3 px-4 text-sm text-center ${stockColor}">
@@ -467,9 +646,17 @@
             document.getElementById('selected-count').textContent = checked;
         }
 
+        function formatQty(value) {
+            return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 3 }).format(Number(value || 0));
+        }
+
+        function sanitizeWhatsAppText(text) {
+            return String(text || '').replace(/[*_~`]/g, '').trim();
+        }
+
         // --- GENERADOR DE MENSAJE Y MODAL ---
-        function generateOrderMessage() {
-            if(!currentSupplier) return;
+        function buildOrderMessage() {
+            if (!currentSupplier) return null;
 
             const rows = drawerProductsBody.querySelectorAll('tr');
             let orderItems = [];
@@ -477,31 +664,81 @@
             rows.forEach(row => {
                 const checkbox = row.querySelector('.product-checkbox');
                 if (checkbox.checked) {
-                    const name = checkbox.getAttribute('data-name');
-                    const qty = row.querySelector('.order-qty-input').value;
-                    orderItems.push(`- ${qty}x ${name}`);
+                    const name = sanitizeWhatsAppText(checkbox.getAttribute('data-name'));
+                    const productId = checkbox.getAttribute('data-id');
+                    const qty = Number(row.querySelector('.order-qty-input').value);
+                    if (!Number.isFinite(qty) || qty <= 0) return;
+                    orderItems.push({ productId: Number(productId), name, qty });
                 }
             });
 
-            if(orderItems.length === 0) {
-                // Usamos un modal o alert rápido si no seleccionó nada
+            if (orderItems.length === 0) {
                 alert("Por favor, selecciona al menos un producto para generar el pedido.");
-                return;
+                return null;
             }
 
-            const today = new Date().toLocaleDateString('es-AR');
-            const message = `Hola ${currentSupplier.name},\nTe escribo desde MiKiosco para hacerte un pedido (Fecha: ${today}).\n\nPor favor, enviame lo siguiente:\n${orderItems.join('\n')}\n\nQuedo a la espera de confirmación y total. ¡Gracias!`;
+            const listLines = orderItems.map(item => `- ${formatQty(item.qty)}x ${item.name}`);
+            const supplierName = currentSupplier.name ? `Hola ${sanitizeWhatsAppText(currentSupplier.name)},\n` : '';
+            const message = `${supplierName}Te escribo desde Despensa Rey de Reyes para hacerte un pedido:\n\nPor favor, enviame lo siguiente:\n${listLines.join('\n')}\n\nQuedo a la espera de confirmacion y total. Gracias!`;
+            return { message, items: orderItems };
+        }
 
-            // Mostrar el Modal
+        function openMessageModal(message) {
             document.getElementById('generated-message').value = message;
-            
+
             msgModal.classList.remove('hidden');
-            // Pequeño delay para la animación
             setTimeout(() => {
                 msgModal.classList.remove('opacity-0');
                 msgContent.classList.remove('scale-95');
                 msgContent.classList.add('scale-100');
             }, 10);
+        }
+
+        function normalizeWhatsAppPhone(phone) {
+            if (!phone) return '';
+            let digits = String(phone).replace(/\D/g, '');
+            if (!digits) return '';
+            if (digits.startsWith('00')) digits = digits.substring(2);
+            if (digits.startsWith('0') && digits.length > 10) digits = digits.substring(1);
+            if (digits.length === 11 && digits.startsWith('15')) digits = digits.substring(2);
+            if (digits.length === 10) return `549${digits}`;
+            return digits;
+        }
+
+        function sendWhatsAppOrder() {
+            const payload = buildOrderMessage();
+            if (!payload) return;
+
+            const phone = normalizeWhatsAppPhone(currentSupplier.phone);
+            if (!phone) {
+                alert("El proveedor no tiene un numero de WhatsApp valido.");
+                return;
+            }
+
+            const supplierId = currentSupplier.id || currentSupplier.phone;
+            const solicitudPayload = {
+                supplierId,
+                items: payload.items.map(item => ({
+                    productId: item.productId,
+                    qty: item.qty
+                }))
+            };
+            createSolicitud(solicitudPayload);
+
+            const url = `https://wa.me/${phone}?text=${encodeURIComponent(payload.message)}`;
+            const popup = window.open(url, '_blank');
+            if (!popup) {
+                openMessageModal(payload.message);
+                return;
+            }
+
+            closeDrawer();
+        }
+
+        function generateOrderMessage() {
+            const payload = buildOrderMessage();
+            if (!payload) return;
+            openMessageModal(payload.message);
         }
 
         function closeMessageModal() {
@@ -614,6 +851,7 @@
         // --- EVENTOS BUSCADOR ---
         searchInput.addEventListener('input', renderSuppliers);
         if (supplierOpenBtn) supplierOpenBtn.addEventListener('click', openSupplierModal);
+        if (requestsOpenBtn) requestsOpenBtn.addEventListener('click', openRequestsModal);
         if (supplierSaveBtn) supplierSaveBtn.addEventListener('click', saveSupplier);
         if (supplierForm) {
             supplierForm.addEventListener('submit', (event) => {
