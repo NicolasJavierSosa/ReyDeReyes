@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="app-loading">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +11,21 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <script>
+        window.addEventListener('load', () => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        });
+        setTimeout(() => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        }, 2500);
+    </script>
     <style>
+        .app-loading body {
+            visibility: hidden;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9;
@@ -43,17 +57,11 @@
                 <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
                 </a>
-                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-box-open mr-2"></i>Compra
-                </a>
                 <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
                 </a>
                 <a href="/inventario" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
                     <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
-                </a>
-                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-users mr-2"></i>Clientes
                 </a>
                 <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas

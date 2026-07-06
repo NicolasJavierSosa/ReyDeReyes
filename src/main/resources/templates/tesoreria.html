@@ -1,21 +1,26 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="app-loading">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kiosco POS - Tesorería</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <script>
+        window.addEventListener('load', () => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        });
+        setTimeout(() => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        }, 2500);
+    </script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f1f5f9;
-        }
+        .app-loading body { visibility: hidden; }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
         
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
@@ -25,50 +30,35 @@
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
-        /* Animaciones para el panel lateral */
         .drawer-open { transform: translateX(0); }
         .drawer-closed { transform: translateX(100%); }
 
-        /* Estilos para radio buttons personalizados tipo botón */
-        .radio-btn-group input:checked + div {
-            border-color: transparent;
-        }
+        .radio-btn-group input:checked + div { border-color: transparent; }
         .radio-btn-group input#type-income:checked + div {
-            background-color: #10b981; /* emerald-500 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+            background-color: #10b981; color: white; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
         }
         .radio-btn-group input#type-expense:checked + div {
-            background-color: #f43f5e; /* rose-500 */
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3);
+            background-color: #f43f5e; color: white; box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.3);
         }
     </style>
 </head>
 <body class="flex flex-col h-screen overflow-hidden text-slate-800 relative">
 
-    <!-- Navegación Superior -->
-    <header class="bg-slate-900 text-white shadow-md z-10 relative">
+    <header class="bg-slate-900 text-white shadow-md z-10 relative shrink-0">
         <div class="px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
-                <span class="text-xl font-bold tracking-wide">MiKiosco<span class="text-emerald-400">POS</span></span>
+                <span class="text-xl font-bold tracking-wide">Rey de reyes <span class="text-emerald-400">X</span><span> NJS</span></span>
             </div>
-                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+            <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
                 <a href="/venta" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
-                </a>
-                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-box-open mr-2"></i>Compra
                 </a>
                 <a href="/tesoreria" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
                     <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
                 </a>
                 <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
-                </a>
-                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-users mr-2"></i>Clientes
                 </a>
                 <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
@@ -77,163 +67,139 @@
         </div>
     </header>
 
-    <!-- Área Principal de Tesorería -->
-    <main class="flex-1 flex flex-col p-6 gap-6 overflow-hidden">
-        
-        <!-- Tarjetas de Resumen (KPIs) -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            <!-- Caja Inicial / Entradas -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-money-bill-transfer"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Base / Entradas</p>
-                    <p class="text-2xl font-bold text-slate-800" id="kpi-incomes">$0.00</p>
-                </div>
-            </div>
-
-            <!-- Ventas del Turno -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-cart-arrow-down"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ventas Sistema</p>
-                    <p class="text-2xl font-bold text-slate-800" id="kpi-sales">$0.00</p>
-                </div>
-            </div>
-
-            <!-- Salidas / Gastos -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-hand-holding-dollar"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Egresos / Retiros</p>
-                    <p class="text-2xl font-bold text-slate-800" id="kpi-expenses">$0.00</p>
-                </div>
-            </div>
-
-            <!-- Total Esperado en Caja (Destacado) -->
-            <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800 flex items-center gap-4 relative overflow-hidden">
-                <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
-                <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 flex items-center justify-center text-xl z-10">
-                    <i class="fa-solid fa-cash-register"></i>
-                </div>
-                <div class="z-10">
-                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Efectivo en Caja</p>
-                    <p class="text-3xl font-bold text-emerald-400" id="kpi-total">$0.00</p>
-                </div>
-            </div>
-
-            <!-- Transferencias Debitadas -->
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-building-columns"></i>
-                </div>
-                <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Transferencias Debitadas</p>
-                    <p class="text-2xl font-bold text-slate-800" id="kpi-transfers">$0.00</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Barra de Herramientas -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+    <main class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto flex flex-col gap-6">
             
-            <!-- Filtros -->
-            <div class="flex gap-4 items-end">
-                <div class="w-64">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
-                        </div>
-                        <input type="text" id="search-input" placeholder="Buscar concepto..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-cart-arrow-down"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ventas de Hoy</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-sales-today">$ 0,00</p>
                     </div>
                 </div>
 
-                <div class="w-48">
-                    <select id="filter-type" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600 font-medium">
-                        <option value="all">Todos los movimientos</option>
-                        <option value="ingreso">Solo Ingresos</option>
-                        <option value="egreso">Solo Egresos</option>
-                        <option value="venta">Solo Ventas</option>
-                    </select>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-arrow-turn-up"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ingresos Hoy</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-incomes-today">$ 0,00</p>
+                    </div>
                 </div>
 
-                <div class="w-48">
-                    <select id="filter-status" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600 font-medium">
-                        <option value="all">Todos los estados</option>
-                        <option value="active">Activos</option>
-                        <option value="voided">Dado de baja</option>
-                    </select>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-arrow-turn-down"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Egresos Hoy</p>
+                        <p class="text-2xl font-bold text-slate-800" id="kpi-expenses-today">$ 0,00</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-5 rounded-xl shadow-lg border border-slate-800 flex items-center gap-4 relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
+                    <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 flex items-center justify-center text-xl z-10">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                    <div class="z-10">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recaudado Hoy</p>
+                        <p class="text-3xl font-bold text-emerald-400" id="kpi-total-today">$ 0,00</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Botones de Acción -->
-            <div class="flex gap-3">
-                <button onclick="openDrawer('expense')" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
-                    <i class="fa-solid fa-arrow-down mr-2"></i> Retiro / Gasto
-                </button>
-                <button onclick="openDrawer('income')" class="bg-white border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
-                    <i class="fa-solid fa-arrow-up mr-2"></i> Ingreso Manual
-                </button>
-                <div class="w-px bg-slate-200 mx-1"></div>
-                <button onclick="openCloseModal()" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
-                    <i class="fa-solid fa-lock mr-2"></i> Cerrar Caja
-                </button>
-                <button onclick="openHistoryModal()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-5 py-2 rounded-lg font-medium transition-colors shadow-sm flex items-center">
-                    <i class="fa-solid fa-clock-rotate-left mr-2"></i> Historial
-                </button>
-            </div>
-        </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4 shrink-0">
+                <div class="flex gap-4 items-end">
+                    <div class="w-64">
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+                            </div>
+                            <input type="text" id="search-input" placeholder="Buscar en movimientos de hoy..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                        </div>
+                    </div>
+                    <div class="w-48">
+                        <select id="filter-type" class="w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer text-slate-600 font-medium">
+                            <option value="all">Todos los tipos</option>
+                            <option value="ingreso">Solo Ingresos</option>
+                            <option value="egreso">Solo Egresos</option>
+                            <option value="venta">Solo Ventas</option>
+                        </select>
+                    </div>
+                </div>
 
-        <!-- Grilla de Movimientos -->
-        <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden relative">
-            <div class="overflow-y-auto flex-1">
-                <table class="w-full text-left border-collapse whitespace-nowrap">
-                    <thead class="bg-slate-50 sticky top-0 z-0 shadow-sm">
-                        <tr>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-24">Hora</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">Tipo</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Concepto / Categoría</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Usuario</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Monto</th>
-                            <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-16">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="treasury-body" class="divide-y divide-slate-100">
-                        <!-- Movimientos generados por JS -->
-                    </tbody>
-                </table>
+                <div class="flex gap-3">
+                    <button onclick="openDrawer('expense')" class="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-50 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
+                        <i class="fa-solid fa-arrow-down mr-2"></i> Retiro / Gasto
+                    </button>
+                    <button onclick="openDrawer('income')" class="bg-white border-2 border-emerald-200 text-emerald-600 hover:bg-emerald-50 px-4 py-2 rounded-lg font-semibold transition-all flex items-center">
+                        <i class="fa-solid fa-arrow-up mr-2"></i> Ingreso Manual
+                    </button>
+                </div>
             </div>
-            
-            <!-- Paginación Footer -->
-            <div class="bg-slate-50 border-t border-slate-200 px-6 py-3 flex justify-between items-center text-sm text-slate-600">
-                <span id="movement-count">Mostrando 0 movimientos</span>
-                <span class="font-medium">Total mostrado: <span id="filtered-total" class="font-bold text-slate-900">$0.00</span></span>
+
+            <div class="flex flex-col shrink-0">
+                <h2 class="text-lg font-bold text-slate-800 mb-3"><i class="fa-regular fa-calendar-check mr-2 text-emerald-500"></i>Jornada Actual (Hoy)</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-24">Hora</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 w-32">Tipo</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Concepto / Referencia</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Monto</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-16"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="today-body" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+
+            <div class="flex flex-col mt-4 shrink-0">
+                <h2 class="text-lg font-bold text-slate-800 mb-3"><i class="fa-solid fa-clock-rotate-left mr-2 text-slate-500"></i>Jornadas Anteriores</h2>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Fecha</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Ventas</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Ingresos</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Egresos</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Recaudación Final</th>
+                                    <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center w-24">Ver Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-days-body" class="divide-y divide-slate-100">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
-    <!-- OVERLAY OSCURO PARA EL PANEL LATERAL -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeDrawer()"></div>
+    <div id="common-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeAllModals()"></div>
 
-    <!-- PANEL LATERAL (SLIDE-OVER) PARA NUEVO MOVIMIENTO -->
     <div id="movement-drawer" class="fixed inset-y-0 right-0 w-[420px] bg-white shadow-2xl z-50 drawer-closed transition-transform duration-300 flex flex-col border-l border-slate-200">
-        
         <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
             <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-file-invoice-dollar mr-2 text-slate-500"></i>Registrar Movimiento</h2>
-            <button onclick="closeDrawer()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+            <button onclick="closeAllModals()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
-
         <div class="p-6 flex-1 overflow-y-auto">
             <form id="movement-form" class="flex flex-col gap-6">
-                
-                <!-- Selector Tipo (Ingreso/Egreso) -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Movimiento *</label>
                     <div class="grid grid-cols-2 gap-3 radio-btn-group">
@@ -251,8 +217,6 @@
                         </label>
                     </div>
                 </div>
-
-                <!-- Monto -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Monto *</label>
                     <div class="relative">
@@ -260,213 +224,81 @@
                         <input type="number" id="form-amount" step="0.01" min="0.01" required class="w-full pl-9 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-lg font-semibold text-slate-800" placeholder="0.00">
                     </div>
                 </div>
-
-                <!-- Categoría Concepto -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Categoría / Razón *</label>
                     <select id="form-category" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer">
-                        <!-- Se llena dinámicamente según el tipo -->
                         <option value="" disabled selected>Seleccione tipo de movimiento primero</option>
                     </select>
                 </div>
-
-                <!-- Detalle -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Detalle / Referencia (Opcional)</label>
                     <input type="text" id="form-detail" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Pago a distribuidor de bebidas">
                 </div>
-
             </form>
         </div>
-
-        <!-- Botones de Acción Formulario -->
         <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-            <button type="button" onclick="closeDrawer()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
-                Cancelar
-            </button>
+            <button type="button" onclick="closeAllModals()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">Cancelar</button>
             <button type="submit" form="movement-form" class="px-5 py-2.5 text-white bg-slate-800 rounded-lg hover:bg-slate-900 shadow-md transition-all font-medium flex items-center">
                 <i class="fa-solid fa-check mr-2"></i> Confirmar
             </button>
         </div>
     </div>
 
-        <!-- OVERLAY OSCURO PARA CIERRE DE CAJA -->
-    <div id="close-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden transition-opacity opacity-0" onclick="closeCloseModal()"></div>
-
-    <!-- MODAL CIERRE DE CAJA -->
-    <div id="close-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
-        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 class="text-lg font-bold text-slate-800">
-                    <i class="fa-solid fa-lock mr-2 text-slate-500"></i>Cierre de Caja
+    <div id="day-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6 pointer-events-none">
+        <div class="bg-white w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto transition-transform scale-95 opacity-0 duration-200" id="day-detail-content">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                <h2 class="text-lg font-bold text-slate-800" id="day-detail-title">
+                    <i class="fa-regular fa-calendar-days mr-2 text-emerald-500"></i>Detalle de Jornada
                 </h2>
-                <button onclick="closeCloseModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
+                <button onclick="closeAllModals()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
-
-            <form id="close-form">
-                <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                        <h3 class="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wider">Recuento de Billetes</h3>
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                                    <th class="py-2 pr-2">Denominaci&oacute;n</th>
-                                    <th class="py-2 px-2 text-center w-24">Cantidad</th>
-                                    <th class="py-2 pl-2 text-right">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bill-count-body" class="divide-y divide-slate-200"></tbody>
-                        </table>
+            
+            <div class="p-6 flex-1 overflow-y-auto">
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Ventas</p>
+                        <p class="text-xl font-bold text-slate-800" id="day-detail-sales">$0,00</p>
                     </div>
-
-                    <div class="flex flex-col gap-4">
-                        <div class="bg-white border border-slate-200 rounded-xl p-4">
-                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Resumen de Caja</p>
-                            <div class="mt-4 space-y-3 text-sm">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-600">Efectivo esperado</span>
-                                    <span class="font-semibold text-slate-800" id="expected-cash">$0.00</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-slate-600">Efectivo contado</span>
-                                    <span class="font-semibold text-slate-800" id="counted-total">$0.00</span>
-                                </div>
-                                <div class="flex justify-between items-center border-t border-dashed border-slate-200 pt-3">
-                                    <span class="text-slate-600">Diferencia</span>
-                                    <span class="font-bold text-slate-900" id="close-diff">$0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border border-slate-200 rounded-xl p-4">
-                            <label class="block text-sm font-semibold text-slate-700 mb-2">Observaciones (Opcional)</label>
-                            <textarea id="close-notes" rows="4" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Ej: Se detect&oacute; diferencia por cambio entregado"></textarea>
-                        </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Ingresos</p>
+                        <p class="text-xl font-bold text-blue-600" id="day-detail-incomes">$0,00</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Egresos</p>
+                        <p class="text-xl font-bold text-rose-600" id="day-detail-expenses">$0,00</p>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-200 text-center">
+                        <p class="text-xs text-emerald-600 uppercase tracking-wider font-bold mb-1">Recaudación</p>
+                        <p class="text-xl font-bold text-emerald-600" id="day-detail-total">$0,00</p>
                     </div>
                 </div>
-
-                <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
-                    <button type="button" onclick="closeCloseModal()" class="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors font-medium">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-5 py-2.5 text-white bg-slate-800 rounded-lg hover:bg-slate-900 shadow-md transition-all font-medium flex items-center">
-                        <i class="fa-solid fa-check mr-2"></i> Confirmar Cierre
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- OVERLAY OSCURO PARA HISTORIAL DE CAJAS -->
-    <div id="history-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden" onclick="closeHistoryModal()"></div>
-
-    <!-- MODAL HISTORIAL DE CAJAS -->
-    <div id="history-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
-        <div class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 class="text-lg font-bold text-slate-800">
-                    <i class="fa-solid fa-clock-rotate-left mr-2 text-slate-500"></i>Historial de Cajas Cerradas
-                </h2>
-                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="p-6 flex flex-col gap-4">
-                <div class="flex flex-wrap gap-4 items-end">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Desde</label>
-                        <input type="date" id="history-from" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Hasta</label>
-                        <input type="date" id="history-to" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
-                    </div>
-                    <button type="button" onclick="resetHistoryFilters()" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
-                        Limpiar filtros
-                    </button>
-                </div>
-
-                <div class="text-sm text-slate-600" id="history-range">Rango: &Uacute;ltimas 10 cajas</div>
 
                 <div class="border border-slate-200 rounded-xl overflow-hidden">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead class="bg-slate-50">
-                            <tr class="text-xs text-slate-500 uppercase tracking-wider">
-                                <th class="py-3 px-4">Cierre</th>
-                                <th class="py-3 px-4">Responsable</th>
-                                <th class="py-3 px-4 text-right">Esperado</th>
-                                <th class="py-3 px-4 text-right">Contado</th>
-                                <th class="py-3 px-4 text-right">Diferencia</th>
-                                <th class="py-3 px-4">Observaciones</th>
+                            <tr>
+                                <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Hora</th>
+                                <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Tipo</th>
+                                <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">Concepto</th>
+                                <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-right">Monto</th>
+                                <th class="py-3 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 text-center">Detalle</th>
                             </tr>
                         </thead>
-                        <tbody id="history-body" class="divide-y divide-slate-200"></tbody>
+                        <tbody id="day-movements-body" class="divide-y divide-slate-100">
+                            </tbody>
                     </table>
-                </div>
-
-                <div class="flex justify-between items-center text-sm text-slate-600">
-                    <span id="history-count">Mostrando 0 cajas</span>
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="history-prev" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50" disabled>Anterior</button>
-                        <span id="history-page">P&aacute;g. 1</span>
-                        <button type="button" id="history-next" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50" disabled>Siguiente</button>
-                    </div>
-                </div>
-
-                <div class="mt-5 border-t border-slate-200 pt-4">
-                    <div class="flex flex-wrap items-end justify-between gap-3">
-                        <div>
-                            <h4 class="text-sm font-semibold text-slate-700">Operaciones de la caja seleccionada</h4>
-                            <p class="text-xs text-slate-500" id="history-selected-label">Seleccione una caja del historial para ver sus movimientos.</p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <input type="text" id="history-mov-search" placeholder="Buscar concepto..." class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
-                            <select id="history-mov-type" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
-                                <option value="all">Todos</option>
-                                <option value="ingreso">Ingresos</option>
-                                <option value="egreso">Egresos</option>
-                                <option value="venta">Ventas</option>
-                            </select>
-                            <select id="history-mov-status" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm">
-                                <option value="all">Todos</option>
-                                <option value="active">Activos</option>
-                                <option value="voided">Dado de baja</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mt-3 border border-slate-200 rounded-xl overflow-hidden">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-50">
-                                <tr class="text-xs text-slate-500 uppercase tracking-wider">
-                                    <th class="py-3 px-4">Hora</th>
-                                    <th class="py-3 px-4">Tipo</th>
-                                    <th class="py-3 px-4">Concepto</th>
-                                    <th class="py-3 px-4">Usuario</th>
-                                    <th class="py-3 px-4 text-right">Monto</th>
-                                </tr>
-                            </thead>
-                            <tbody id="history-movements-body" class="divide-y divide-slate-200"></tbody>
-                        </table>
-                    </div>
-                    <div class="mt-2 text-xs text-slate-500" id="history-mov-count">Mostrando 0 movimientos</div>
-                </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OVERLAY DETALLE DE VENTA -->
-    <div id="sale-detail-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden" onclick="closeSaleDetailModal()"></div>
-
-    <!-- MODAL DETALLE DE VENTA -->
-    <div id="sale-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
-        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div id="sale-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6 pointer-events-none">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden pointer-events-auto transition-transform scale-95 opacity-0 duration-200" id="sale-detail-content">
             <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 class="text-lg font-bold text-slate-800" id="sale-detail-title">
-                    <i class="fa-solid fa-receipt mr-2 text-slate-500"></i>Detalle de Venta
+                <h2 class="text-lg font-bold text-slate-800">
+                    <i class="fa-solid fa-receipt mr-2 text-slate-500"></i>Detalle de Venta <span id="sale-detail-ticket" class="text-emerald-600 ml-2"></span>
                 </h2>
                 <button onclick="closeSaleDetailModal()" class="text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 p-2 rounded-lg transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
@@ -474,22 +306,18 @@
             </div>
 
             <div class="p-6 flex flex-col gap-4">
-                <div class="grid grid-cols-2 gap-4 text-sm text-slate-700">
+                <div class="grid grid-cols-3 gap-4 text-sm text-slate-700 mb-2">
                     <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Ticket</div>
-                        <div class="font-semibold" id="sale-detail-ticket">-</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Fecha y Hora</div>
+                        <div class="font-semibold" id="sale-detail-date">-</div>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Fecha</div>
-                        <div class="font-semibold" id="sale-detail-date">-</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider">Método de Pago</div>
+                        <div class="font-semibold" id="sale-detail-payment">-</div>
                     </div>
                     <div>
                         <div class="text-xs text-slate-500 uppercase tracking-wider">Estado</div>
                         <div class="font-semibold" id="sale-detail-status">-</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Pago</div>
-                        <div class="font-semibold" id="sale-detail-payment">-</div>
                     </div>
                 </div>
 
@@ -497,10 +325,9 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50">
                             <tr class="text-xs text-slate-500 uppercase tracking-wider">
-                                <th class="py-3 px-4">Código</th>
                                 <th class="py-3 px-4">Producto</th>
                                 <th class="py-3 px-4 text-center">Cant.</th>
-                                <th class="py-3 px-4 text-right">Precio</th>
+                                <th class="py-3 px-4 text-right">Precio Un.</th>
                                 <th class="py-3 px-4 text-right">Subtotal</th>
                             </tr>
                         </thead>
@@ -508,30 +335,29 @@
                     </table>
                 </div>
 
-                <div class="flex justify-end gap-6 text-sm text-slate-700">
+                <div class="flex justify-end gap-6 text-sm text-slate-700 mt-2">
                     <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Subtotal</div>
-                        <div class="font-semibold text-right" id="sale-detail-subtotal">$0.00</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider text-right">Subtotal</div>
+                        <div class="font-semibold text-right text-lg" id="sale-detail-subtotal">$ 0,00</div>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Descuento</div>
-                        <div class="font-semibold text-right text-rose-600" id="sale-detail-discount">$0.00</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider text-right">Descuento</div>
+                        <div class="font-semibold text-right text-lg text-rose-600" id="sale-detail-discount">$ 0,00</div>
                     </div>
                     <div>
-                        <div class="text-xs text-slate-500 uppercase tracking-wider">Total</div>
-                        <div class="font-semibold text-right text-emerald-600" id="sale-detail-total">$0.00</div>
+                        <div class="text-xs text-slate-500 uppercase tracking-wider text-right">Total</div>
+                        <div class="font-bold text-right text-2xl text-emerald-600" id="sale-detail-total">$ 0,00</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-<!-- Script Lógica -->
     <script>
+        // --- CONSTANTES Y ESTADOS ---
         const categories = {
             ingreso: [
-                { id: 'cambio_inicial', name: 'Cambio Inicial / Base' },
-                { id: 'ingreso_dueno', name: 'Aporte Dueño' },
+                { id: 'aporte_dueno', name: 'Aporte Dueño' },
                 { id: 'cobro_cta_cte', name: 'Cobro de Cuenta Corriente' },
                 { id: 'otros_ingresos', name: 'Otros Ingresos' }
             ],
@@ -544,731 +370,311 @@
             ]
         };
 
-        const tableBody = document.getElementById('treasury-body');
+        let rawMovements = [];
+        let groupedByDay = {}; // Mapa: 'YYYY-MM-DD' -> { date, movements[], totalSales, totalIncomes, totalExpenses, netTotal }
+        
+        // Formateador ARS
+        const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
+
+        // Obtenemos la fecha de "Hoy" en formato local YYYY-MM-DD
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        const todayStr = getTodayStr();
+
+        // --- REFERENCIAS DOM ---
+        const todayBody = document.getElementById('today-body');
+        const historyDaysBody = document.getElementById('history-days-body');
         const searchInput = document.getElementById('search-input');
         const filterType = document.getElementById('filter-type');
-        const filterStatus = document.getElementById('filter-status');
-        const movementCount = document.getElementById('movement-count');
-        const filteredTotal = document.getElementById('filtered-total');
 
-        const kpiIncomes = document.getElementById('kpi-incomes');
-        const kpiSales = document.getElementById('kpi-sales');
-        const kpiExpenses = document.getElementById('kpi-expenses');
-        const kpiTotal = document.getElementById('kpi-total');
-        const kpiTransfers = document.getElementById('kpi-transfers');
+        const kpiSalesToday = document.getElementById('kpi-sales-today');
+        const kpiIncomesToday = document.getElementById('kpi-incomes-today');
+        const kpiExpensesToday = document.getElementById('kpi-expenses-today');
+        const kpiTotalToday = document.getElementById('kpi-total-today');
 
+        const overlay = document.getElementById('common-overlay');
         const drawer = document.getElementById('movement-drawer');
-        const overlay = document.getElementById('drawer-overlay');
+        const dayModal = document.getElementById('day-detail-modal');
+        const dayModalContent = document.getElementById('day-detail-content');
+        const saleModal = document.getElementById('sale-detail-modal');
+        const saleModalContent = document.getElementById('sale-detail-content');
+
         const form = document.getElementById('movement-form');
         const categorySelect = document.getElementById('form-category');
         const amountInput = document.getElementById('form-amount');
         const detailInput = document.getElementById('form-detail');
-        const closeOverlay = document.getElementById('close-overlay');
-        const closeModal = document.getElementById('close-modal');
-        const closeForm = document.getElementById('close-form');
-        const billCountBody = document.getElementById('bill-count-body');
-        const expectedCashEl = document.getElementById('expected-cash');
-        const countedTotalEl = document.getElementById('counted-total');
-        const closeDiffEl = document.getElementById('close-diff');
-        const closeNotesInput = document.getElementById('close-notes');
-        const historyOverlay = document.getElementById('history-overlay');
-        const historyModal = document.getElementById('history-modal');
-        const historyBody = document.getElementById('history-body');
-        const historyFrom = document.getElementById('history-from');
-        const historyTo = document.getElementById('history-to');
-        const historyPrev = document.getElementById('history-prev');
-        const historyNext = document.getElementById('history-next');
-        const historyCount = document.getElementById('history-count');
-        const historyPageLabel = document.getElementById('history-page');
-        const historyRangeLabel = document.getElementById('history-range');
-        const historySelectedLabel = document.getElementById('history-selected-label');
-        const historyMovementsBody = document.getElementById('history-movements-body');
-        const historyMovementsCount = document.getElementById('history-mov-count');
-        const historyMovSearch = document.getElementById('history-mov-search');
-        const historyMovType = document.getElementById('history-mov-type');
-        const historyMovStatus = document.getElementById('history-mov-status');
-        const saleDetailOverlay = document.getElementById('sale-detail-overlay');
-        const saleDetailModal = document.getElementById('sale-detail-modal');
-        const saleDetailTicket = document.getElementById('sale-detail-ticket');
-        const saleDetailDate = document.getElementById('sale-detail-date');
-        const saleDetailStatus = document.getElementById('sale-detail-status');
-        const saleDetailPayment = document.getElementById('sale-detail-payment');
-        const saleDetailItems = document.getElementById('sale-detail-items');
-        const saleDetailSubtotal = document.getElementById('sale-detail-subtotal');
-        const saleDetailDiscount = document.getElementById('sale-detail-discount');
-        const saleDetailTotal = document.getElementById('sale-detail-total');
 
-        const moneyFormatter = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' });
-
-        let movements = [];
-        let currentExpectedCash = 0;
-        let historyPage = 0;
-        const historyPageSize = 10;
-        let selectedHistoryCajaId = null;
-        let selectedHistoryRow = null;
-
-        const denominations = [10000, 5000, 2000, 1000, 500, 200, 100, 50, 20, 10];
-
-        function formatMoney(amount) {
-            return moneyFormatter.format(Number(amount) || 0);
-        }
-
-        function normalizeType(type) {
-            return (type || '').toLowerCase();
-        }
-
+        // --- UTILIDADES ---
+        function formatMoney(amount) { return moneyFormatter.format(Number(amount) || 0); }
         function escapeHtml(value) {
-            const raw = value == null ? '' : String(value);
-            return raw
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
+            return String(value || '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
         }
-
         function formatTime(dateTime) {
-            if (!dateTime) {
-                return '--:--';
-            }
-            const date = new Date(dateTime);
-            if (Number.isNaN(date.getTime())) {
-                return '--:--';
-            }
-            return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+            if (!dateTime) return '--:--';
+            const d = new Date(dateTime);
+            return isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
         }
-
-        function getTypeUi(type) {
-            if (type === 'ingreso') {
-                return {
-                    badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Ingreso</span>',
-                    amountClass: 'text-blue-600 font-semibold',
-                    icon: '<i class="fa-solid fa-arrow-turn-up text-blue-400 mr-2 text-xs"></i>'
-                };
-            }
-            if (type === 'egreso') {
-                return {
-                    badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-rose-100 text-rose-700">Egreso</span>',
-                    amountClass: 'text-rose-600 font-semibold',
-                    icon: '<i class="fa-solid fa-arrow-turn-down text-rose-400 mr-2 text-xs"></i>'
-                };
-            }
-            return {
-                badge: '<span class="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-100 text-emerald-700">Venta</span>',
-                amountClass: 'text-emerald-600 font-bold',
-                icon: '<i class="fa-solid fa-cart-shopping text-emerald-400 mr-2 text-xs"></i>'
-            };
-        }
-
-        function renderActionButton(movement) {
-            const type = normalizeType(movement.type);
-            if (type === 'venta' && movement.saleId) {
-                return `
-                    <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Dar de baja venta" onclick="voidSale(${movement.saleId})">
-                        <i class="fa-solid fa-ban"></i>
-                    </button>
-                `;
-            }
-            if (movement.deletable) {
-                return `
-                    <button class="text-slate-300 hover:text-rose-500 transition-colors p-1" title="Dar de baja movimiento" onclick="voidMovement(${movement.id})">
-                        <i class="fa-solid fa-ban"></i>
-                    </button>
-                `;
-            }
-            return '<span class="text-slate-300 text-xs">-</span>';
-        }
-
-        function renderBillRows() {
-            if (!billCountBody) {
-                return;
-            }
-            billCountBody.innerHTML = '';
-            denominations.forEach((denom) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-2 pr-2 text-sm text-slate-600 font-medium">${formatMoney(denom)}</td>
-                    <td class="py-2 px-2 text-center">
-                        <input type="number" min="0" step="1" value="" placeholder="0" data-denom="${denom}" class="bill-qty w-20 text-center px-2 py-1 bg-white border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none">
-                    </td>
-                    <td class="py-2 pl-2 text-right text-sm font-semibold text-slate-700" id="subtotal-${denom}">$0.00</td>
-                `;
-                billCountBody.appendChild(tr);
-            });
-
-            billCountBody.querySelectorAll('.bill-qty').forEach((input) => {
-                input.addEventListener('input', updateCountedTotals);
-            });
-            updateCountedTotals();
-        }
-
-        function updateCountedTotals() {
-            if (!billCountBody || !countedTotalEl || !closeDiffEl) {
-                return;
-            }
-            let total = 0;
-            billCountBody.querySelectorAll('.bill-qty').forEach((input) => {
-                const denom = Number(input.dataset.denom);
-                let qty = Number(input.value) || 0;
-                if (qty < 0) {
-                    qty = 0;
-                    input.value = 0;
-                }
-                const subtotal = denom * qty;
-                total += subtotal;
-                const subtotalEl = document.getElementById(`subtotal-${denom}`);
-                if (subtotalEl) {
-                    subtotalEl.textContent = formatMoney(subtotal);
-                }
-            });
-            countedTotalEl.textContent = formatMoney(total);
-            const diff = total - currentExpectedCash;
-            closeDiffEl.textContent = formatMoney(diff);
-            closeDiffEl.classList.toggle('text-emerald-600', diff >= 0);
-            closeDiffEl.classList.toggle('text-rose-600', diff < 0);
-        }
-
-        function openCloseModal() {
-            if (!closeOverlay || !closeModal) {
-                return;
-            }
-            if (closeForm) {
-                closeForm.reset();
-            }
-            renderBillRows();
-            if (expectedCashEl) {
-                expectedCashEl.textContent = formatMoney(currentExpectedCash);
-            }
-            closeOverlay.classList.remove('hidden');
-            closeModal.classList.remove('hidden');
-            closeModal.classList.add('flex');
-            setTimeout(() => closeOverlay.classList.remove('opacity-0'), 10);
-        }
-
-        function closeCloseModal() {
-            if (!closeOverlay || !closeModal) {
-                return;
-            }
-            closeOverlay.classList.add('opacity-0');
-            closeOverlay.classList.add('hidden');
-            closeModal.classList.remove('flex');
-            closeModal.classList.add('hidden');
-        }
-
-        function formatDateTime(value) {
-            if (!value) {
-                return '-';
-            }
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) {
-                return '-';
-            }
-            return date.toLocaleString('es-AR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        }
-
-        function formatDateOnly(value) {
-            if (!value) {
-                return '';
-            }
-            const parts = value.split('-');
-            if (parts.length !== 3) {
-                return value;
-            }
+        function formatDateFriendly(dateStr) {
+            // Convierte YYYY-MM-DD a DD/MM/YYYY
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
             return `${parts[2]}/${parts[1]}/${parts[0]}`;
         }
 
-        function formatQty(value) {
-            const num = Number(value);
-            if (!Number.isFinite(num)) return '0';
-            return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-        }
-
-        function formatPaymentMethod(method) {
-            if (!method) return '-';
-            if (method === 'EFECTIVO') return 'Efectivo';
-            if (method === 'TRANSFERENCIA') return 'Transferencia';
-            if (method === 'TARJETA') return 'Tarjeta';
-            return method;
-        }
-
-        function closeSaleDetailModal() {
-            if (!saleDetailOverlay || !saleDetailModal) return;
-            saleDetailOverlay.classList.add('hidden');
-            saleDetailModal.classList.remove('flex');
-            saleDetailModal.classList.add('hidden');
-        }
-
-        function renderSaleDetail(sale) {
-            if (!sale) return;
-            if (saleDetailTicket) saleDetailTicket.textContent = sale.ticket ? `#${sale.ticket}` : '-';
-            if (saleDetailDate) saleDetailDate.textContent = formatDateTime(sale.dateTime);
-            if (saleDetailStatus) saleDetailStatus.textContent = sale.status || '-';
-            if (saleDetailPayment) saleDetailPayment.textContent = formatPaymentMethod(sale.paymentMethod);
-
-            if (saleDetailSubtotal) saleDetailSubtotal.textContent = formatMoney(sale.subtotal);
-            if (saleDetailDiscount) saleDetailDiscount.textContent = formatMoney(sale.discount);
-            if (saleDetailTotal) saleDetailTotal.textContent = formatMoney(sale.total);
-
-            if (saleDetailItems) {
-                saleDetailItems.innerHTML = '';
-                const items = Array.isArray(sale.items) ? sale.items : [];
-                if (!items.length) {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">No hay productos en esta venta.</td>
-                    `;
-                    saleDetailItems.appendChild(tr);
-                } else {
-                    items.forEach(item => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="py-3 px-4 text-sm text-slate-700">${escapeHtml(item.barcode || '-')}</td>
-                            <td class="py-3 px-4 text-sm text-slate-700">${escapeHtml(item.name || '-')}</td>
-                            <td class="py-3 px-4 text-sm text-slate-700 text-center">${formatQty(item.quantity)}</td>
-                            <td class="py-3 px-4 text-sm text-slate-700 text-right">${formatMoney(item.unitPrice)}</td>
-                            <td class="py-3 px-4 text-sm text-slate-700 text-right">${formatMoney(item.subtotal)}</td>
-                        `;
-                        saleDetailItems.appendChild(tr);
-                    });
-                }
-            }
-        }
-
-        async function openSaleDetailModal(saleId) {
-            if (!saleId) return;
-            try {
-                const sale = await apiFetch(`/api/ventas/${saleId}`);
-                renderSaleDetail(sale);
-                if (saleDetailOverlay && saleDetailModal) {
-                    saleDetailOverlay.classList.remove('hidden');
-                    saleDetailModal.classList.remove('hidden');
-                    saleDetailModal.classList.add('flex');
-                }
-            } catch (error) {
-                alert(error.message);
-            }
-        }
-
-        function openHistoryModal() {
-            if (!historyOverlay || !historyModal) {
-                return;
-            }
-            historyPage = 0;
-            selectedHistoryCajaId = null;
-            selectedHistoryRow = null;
-            if (historyMovementsBody) {
-                historyMovementsBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">Seleccione una caja para ver sus movimientos.</td>
-                    </tr>
-                `;
-            }
-            if (historySelectedLabel) {
-                historySelectedLabel.textContent = 'Seleccione una caja del historial para ver sus movimientos.';
-            }
-            if (historyMovementsCount) {
-                historyMovementsCount.textContent = 'Mostrando 0 movimientos';
-            }
-            loadHistory();
-            historyOverlay.classList.remove('hidden');
-            historyModal.classList.remove('hidden');
-            historyModal.classList.add('flex');
-        }
-
-        function closeHistoryModal() {
-            if (!historyOverlay || !historyModal) {
-                return;
-            }
-            historyOverlay.classList.add('hidden');
-            historyModal.classList.remove('flex');
-            historyModal.classList.add('hidden');
-        }
-
-        function resetHistoryFilters() {
-            if (historyFrom) {
-                historyFrom.value = '';
-            }
-            if (historyTo) {
-                historyTo.value = '';
-            }
-            historyPage = 0;
-            loadHistory();
-        }
-
-        async function loadHistory() {
-            if (!historyBody) {
-                return;
-            }
-            const params = new URLSearchParams();
-            if (historyFrom && historyFrom.value) {
-                params.set('from', historyFrom.value);
-            }
-            if (historyTo && historyTo.value) {
-                params.set('to', historyTo.value);
-            }
-            params.set('page', String(historyPage));
-            params.set('size', String(historyPageSize));
-
-            try {
-                const data = await apiFetch(`/api/tesoreria/cajas/cerradas?${params.toString()}`);
-                historyBody.innerHTML = '';
-
-                if (!data.items || data.items.length === 0) {
-                    historyBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="py-4 px-4 text-center text-slate-500">No hay cajas cerradas para el filtro seleccionado.</td>
-                        </tr>
-                    `;
-                } else {
-                    data.items.forEach((item) => {
-                        const diff = Number(item.difference) || 0;
-                        const diffClass = diff >= 0 ? 'text-emerald-600' : 'text-rose-600';
-                        const row = document.createElement('tr');
-                        row.className = 'hover:bg-slate-50 cursor-pointer';
-                        row.dataset.cajaId = String(item.id);
-                        row.addEventListener('click', () => selectHistoryCaja(item, row));
-                        row.innerHTML = `
-                            <td class="py-3 px-4 text-sm text-slate-700">${formatDateTime(item.closedAt)}</td>
-                            <td class="py-3 px-4 text-sm text-slate-600">${escapeHtml(item.responsible || '-')}</td>
-                            <td class="py-3 px-4 text-sm text-right text-slate-700">${formatMoney(item.expectedCash)}</td>
-                            <td class="py-3 px-4 text-sm text-right text-slate-700">${formatMoney(item.countedCash)}</td>
-                            <td class="py-3 px-4 text-sm text-right font-semibold ${diffClass}">${formatMoney(item.difference)}</td>
-                            <td class="py-3 px-4 text-sm text-slate-500">${escapeHtml(item.notes || '')}</td>
-                        `;
-                        historyBody.appendChild(row);
-                    });
-                }
-
-                if (historyCount) {
-                    historyCount.textContent = `Mostrando ${data.items ? data.items.length : 0} cajas`;
-                }
-                if (historyPageLabel) {
-                    historyPageLabel.textContent = `P\u00e1g. ${historyPage + 1}`;
-                }
-                if (historyRangeLabel) {
-                    const fromLabel = historyFrom && historyFrom.value ? formatDateOnly(historyFrom.value) : '';
-                    const toLabel = historyTo && historyTo.value ? formatDateOnly(historyTo.value) : '';
-                    if (fromLabel && toLabel) {
-                        historyRangeLabel.textContent = `Rango: ${fromLabel} a ${toLabel}`;
-                    } else if (fromLabel) {
-                        historyRangeLabel.textContent = `Rango: Desde ${fromLabel}`;
-                    } else if (toLabel) {
-                        historyRangeLabel.textContent = `Rango: Hasta ${toLabel}`;
-                    } else {
-                        historyRangeLabel.textContent = 'Rango: \u00daltimas 10 cajas';
-                    }
-                }
-                if (selectedHistoryCajaId && selectedHistoryRow == null) {
-                    const row = historyBody.querySelector(`tr[data-caja-id="${selectedHistoryCajaId}"]`);
-                    if (row) {
-                        row.classList.add('bg-emerald-50');
-                        selectedHistoryRow = row;
-                    }
-                }
-
-                if (historyPrev) {
-                    historyPrev.disabled = historyPage <= 0;
-                }
-                if (historyNext) {
-                    historyNext.disabled = !data.hasMore;
-                }
-            } catch (error) {
-                alert(error.message);
-            }
-        }
-
-        function selectHistoryCaja(item, row) {
-            selectedHistoryCajaId = item.id;
-            if (selectedHistoryRow) {
-                selectedHistoryRow.classList.remove('bg-emerald-50');
-            }
-            selectedHistoryRow = row;
-            if (selectedHistoryRow) {
-                selectedHistoryRow.classList.add('bg-emerald-50');
-            }
-            if (historySelectedLabel) {
-                historySelectedLabel.textContent = `Caja #${item.id} cerrada el ${formatDateTime(item.closedAt)}`;
-            }
-            loadHistoryMovements();
-        }
-
-        async function loadHistoryMovements() {
-            if (!historyMovementsBody) {
-                return;
-            }
-            if (!selectedHistoryCajaId) {
-                historyMovementsBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="py-4 px-4 text-center text-slate-500">Seleccione una caja para ver sus movimientos.</td>
-                    </tr>
-                `;
-                return;
-            }
-
-            const params = new URLSearchParams();
-            if (historyMovSearch && historyMovSearch.value.trim()) {
-                params.set('search', historyMovSearch.value.trim());
-            }
-            if (historyMovType && historyMovType.value) {
-                params.set('type', historyMovType.value);
-            }
-            if (historyMovStatus && historyMovStatus.value) {
-                params.set('status', historyMovStatus.value);
-            }
-
-            try {
-                const data = await apiFetch(`/api/tesoreria/cajas/${selectedHistoryCajaId}/movimientos?${params.toString()}`);
-                historyMovementsBody.innerHTML = '';
-                if (!data || data.length === 0) {
-                    historyMovementsBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="py-4 px-4 text-center text-slate-500">No hay movimientos para esta caja.</td>
-                        </tr>
-                    `;
-                    if (historyMovementsCount) {
-                        historyMovementsCount.textContent = 'Mostrando 0 movimientos';
-                    }
-                    return;
-                }
-
-                data.forEach((movement) => {
-                    const type = normalizeType(movement.type);
-                    const ui = getTypeUi(type);
-                    const amount = Number(movement.amount) || 0;
-                    const row = document.createElement('tr');
-                    if (type === 'venta' && movement.saleId) {
-                        row.classList.add('cursor-pointer', 'hover:bg-slate-50');
-                        row.addEventListener('click', (event) => {
-                            if (event.target && event.target.closest('button')) return;
-                            openSaleDetailModal(movement.saleId);
-                        });
-                    }
-                    row.innerHTML = `
-                        <td class="py-3 px-4 text-sm text-slate-600">${formatTime(movement.dateTime)}</td>
-                        <td class="py-3 px-4">${ui.badge}</td>
-                        <td class="py-3 px-4 text-sm text-slate-700">
-                            <div class="font-medium">${ui.icon}${escapeHtml(movement.concept || '-')}</div>
-                            ${movement.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${escapeHtml(movement.detail)}</div>` : ''}
-                            ${movement.voided ? `<div class="text-xs text-rose-500 mt-1 ml-5 font-semibold">Dado de baja</div>` : ''}
-                        </td>
-                        <td class="py-3 px-4 text-sm text-slate-600">${escapeHtml(movement.user || '-')}</td>
-                        <td class="py-3 px-4 text-sm text-right ${ui.amountClass}">${amount > 0 ? '+' : ''}${formatMoney(amount)}</td>
-                    `;
-                    historyMovementsBody.appendChild(row);
-                });
-
-                if (historyMovementsCount) {
-                    historyMovementsCount.textContent = `Mostrando ${data.length} movimientos`;
-                }
-            } catch (error) {
-                alert(error.message);
-            }
+        function getTypeUi(type) {
+            if (type === 'ingreso') return { badge: '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-700">INGRESO</span>', amountClass: 'text-blue-600 font-semibold', icon: '<i class="fa-solid fa-arrow-turn-up text-blue-400 mr-2"></i>' };
+            if (type === 'egreso') return { badge: '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-rose-100 text-rose-700">EGRESO</span>', amountClass: 'text-rose-600 font-semibold', icon: '<i class="fa-solid fa-arrow-turn-down text-rose-400 mr-2"></i>' };
+            return { badge: '<span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-700">VENTA</span>', amountClass: 'text-emerald-600 font-bold', icon: '<i class="fa-solid fa-cart-shopping text-emerald-400 mr-2"></i>' };
         }
 
         async function apiFetch(url, options = {}) {
             const response = await fetch(url, options);
             if (response.ok) {
-                if (response.status === 204) {
-                    return null;
-                }
+                if (response.status === 204) return null;
                 return response.json();
             }
-
-            let message = 'No se pudo completar la operacion';
-            try {
-                const error = await response.json();
-                if (error && error.message) {
-                    message = error.message;
-                }
-            } catch (_) {
-                // Sin detalle JSON
-            }
+            let message = 'No se pudo completar la operación';
+            try { const err = await response.json(); if (err && err.message) message = err.message; } catch (_) {}
             throw new Error(message);
         }
 
-        function renderTable() {
-            const search = searchInput.value.toLowerCase();
-            const selectedType = filterType.value;
-            const selectedStatus = filterStatus ? filterStatus.value : 'all';
-
-            const filtered = movements.filter((movement) => {
-                const type = normalizeType(movement.type);
-                const searchable = `${movement.concept || ''} ${movement.detail || ''} ${movement.user || ''}`.toLowerCase();
-                const matchesSearch = searchable.includes(search);
-                const matchesType = selectedType === 'all' || type === selectedType;
-                const isVoided = Boolean(movement.voided);
-                const matchesStatus = selectedStatus === 'all'
-                    || (selectedStatus === 'active' && !isVoided)
-                    || (selectedStatus === 'voided' && isVoided);
-                return matchesSearch && matchesType && matchesStatus;
-            });
-
-            tableBody.innerHTML = '';
-            let total = 0;
-
-            filtered.forEach((movement) => {
-                const type = normalizeType(movement.type);
-                const ui = getTypeUi(type);
-                const amount = Number(movement.amount) || 0;
-                const isVoided = Boolean(movement.voided);
-                total += amount;
-
-                const tr = document.createElement('tr');
-                tr.className = `hover:bg-slate-50 transition-colors group ${isVoided ? 'opacity-60' : ''}`;
-                if (type === 'venta' && movement.saleId) {
-                    tr.classList.add('cursor-pointer');
-                    tr.addEventListener('click', (event) => {
-                        if (event.target && event.target.closest('button')) return;
-                        openSaleDetailModal(movement.saleId);
+        // --- LÓGICA PRINCIPAL ---
+        
+        // 1. Forzar apertura de caja en backend de manera invisible (para evitar errores 400 de Java)
+        async function autoEnsureCajaOpen() {
+            try {
+                const estado = await apiFetch('/api/tesoreria/caja/estado');
+                if (!estado || !estado.open) {
+                    await apiFetch('/api/tesoreria/caja/apertura', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount: 0, notes: 'Apertura automática del sistema' })
                     });
                 }
+            } catch (e) { console.error("Error validando caja automática", e); }
+        }
+
+        // 2. Cargar Movimientos y Agrupar por Día
+        async function loadAndGroupData() {
+            try {
+                rawMovements = await apiFetch('/api/tesoreria/movimientos');
+                groupedByDay = {};
+
+                rawMovements.forEach(m => {
+                    if(!m.dateTime) return;
+                    // Ignoramos movimientos anulados
+                    if(m.voided) return;
+                    // Ignoramos la apertura de caja si el concepto es "Cambio Inicial / Base" 
+                    // (para que no contamine como ingreso real en nuestro nuevo modelo sin caja)
+                    if(m.concept && m.concept.toLowerCase().includes('cambio inicial')) return;
+
+                    // Extraer fecha local YYYY-MM-DD
+                    const d = new Date(m.dateTime);
+                    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+                    if (!groupedByDay[dateStr]) {
+                        groupedByDay[dateStr] = { date: dateStr, movements: [], totalSales: 0, totalIncomes: 0, totalExpenses: 0, netTotal: 0 };
+                    }
+
+                    groupedByDay[dateStr].movements.push(m);
+
+                    const amt = Number(m.amount) || 0;
+                    const type = (m.type || '').toLowerCase();
+
+                    if (type === 'venta') groupedByDay[dateStr].totalSales += amt;
+                    else if (type === 'ingreso') groupedByDay[dateStr].totalIncomes += amt;
+                    else if (type === 'egreso') groupedByDay[dateStr].totalExpenses += amt;
+
+                    if (type === 'egreso') groupedByDay[dateStr].netTotal -= amt;
+                    else groupedByDay[dateStr].netTotal += amt;
+                });
+
+                updateTodayView();
+                updateHistoryView();
+
+            } catch (error) {
+                console.error("Error cargando movimientos", error);
+            }
+        }
+
+        // 3. Renderizar el día de HOY
+        function updateTodayView() {
+            const todayData = groupedByDay[todayStr] || { totalSales: 0, totalIncomes: 0, totalExpenses: 0, netTotal: 0, movements: [] };
+
+            // Actualizar KPIs
+            kpiSalesToday.textContent = formatMoney(todayData.totalSales);
+            kpiIncomesToday.textContent = formatMoney(todayData.totalIncomes);
+            kpiExpensesToday.textContent = formatMoney(todayData.totalExpenses);
+            kpiTotalToday.textContent = formatMoney(todayData.netTotal);
+
+            // Filtrar movimientos de la grilla de hoy
+            const search = searchInput.value.toLowerCase();
+            const typeFilter = filterType.value;
+
+            const filteredMovs = todayData.movements.filter(m => {
+                const mType = (m.type || '').toLowerCase();
+                const searchable = `${m.concept || ''} ${m.detail || ''}`.toLowerCase();
+                
+                if (typeFilter !== 'all' && mType !== typeFilter) return false;
+                if (search && !searchable.includes(search)) return false;
+                return true;
+            });
+
+            todayBody.innerHTML = '';
+            
+            if(filteredMovs.length === 0) {
+                todayBody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No hay movimientos registrados hoy.</td></tr>`;
+                return;
+            }
+
+            filteredMovs.forEach(m => {
+                const type = (m.type || '').toLowerCase();
+                const ui = getTypeUi(type);
+                const amt = Number(m.amount) || 0;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+                
+                let detailBtn = '-';
+                if (type === 'venta' && m.saleId) {
+                    detailBtn = `<button onclick="openSaleModal(${m.saleId})" class="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded text-xs font-semibold transition-colors"><i class="fa-solid fa-eye mr-1"></i> Ver</button>`;
+                } else if (type === 'egreso' || type === 'ingreso') {
+                    detailBtn = `<button onclick="voidMovement(${m.id})" class="text-rose-500 hover:bg-rose-50 px-3 py-1 rounded text-xs font-semibold transition-colors" title="Anular"><i class="fa-solid fa-trash-can"></i></button>`;
+                }
+
                 tr.innerHTML = `
-                    <td class="py-3 px-6 text-sm text-slate-500 border-b border-slate-100 font-medium">${formatTime(movement.dateTime)}</td>
-                    <td class="py-3 px-6 border-b border-slate-100">${ui.badge}</td>
-                    <td class="py-3 px-6 text-sm text-slate-800 border-b border-slate-100">
-                        <div class="font-medium">${ui.icon}${escapeHtml(movement.concept || '-')}</div>
-                        ${movement.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5">${escapeHtml(movement.detail)}</div>` : ''}
-                        ${isVoided ? `<div class="text-xs text-rose-500 mt-1 ml-5 font-semibold">Dado de baja</div>` : ''}
+                    <td class="py-3 px-6 text-sm text-slate-500 font-medium">${formatTime(m.dateTime)}</td>
+                    <td class="py-3 px-6">${ui.badge}</td>
+                    <td class="py-3 px-6 text-sm text-slate-800">
+                        <div class="font-semibold text-slate-700">${ui.icon}${escapeHtml(m.concept || '-')}</div>
+                        ${m.detail ? `<div class="text-xs text-slate-500 mt-0.5 ml-5 truncate max-w-xs">${escapeHtml(m.detail)}</div>` : ''}
                     </td>
-                    <td class="py-3 px-6 text-sm text-slate-600 border-b border-slate-100"><i class="fa-regular fa-circle-user mr-1"></i> ${escapeHtml(movement.user || '-')}</td>
-                    <td class="py-3 px-6 text-sm border-b border-slate-100 text-right ${ui.amountClass}">${amount > 0 ? '+' : ''}${formatMoney(amount)}</td>
-                    <td class="py-3 px-6 text-center border-b border-slate-100">
-                        ${isVoided ? '<span class="text-slate-300 text-xs">-</span>' : renderActionButton(movement)}
+                    <td class="py-3 px-6 text-sm text-right ${ui.amountClass}">${amt > 0 && type !== 'egreso' ? '+' : ''}${formatMoney(amt)}</td>
+                    <td class="py-3 px-6 text-center">${detailBtn}</td>
+                `;
+                todayBody.appendChild(tr);
+            });
+        }
+
+        // 4. Renderizar JORNADAS ANTERIORES
+        function updateHistoryView() {
+            historyDaysBody.innerHTML = '';
+            
+            // Obtener todos los días ordenados de más reciente a más antiguo, ignorando HOY
+            const pastDates = Object.keys(groupedByDay)
+                                    .filter(date => date !== todayStr)
+                                    .sort((a, b) => new Date(b) - new Date(a));
+
+            if(pastDates.length === 0) {
+                historyDaysBody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">No hay jornadas anteriores registradas.</td></tr>`;
+                return;
+            }
+
+            pastDates.forEach(dateStr => {
+                const day = groupedByDay[dateStr];
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0';
+                
+                tr.innerHTML = `
+                    <td class="py-3 px-6 text-sm font-bold text-slate-700"><i class="fa-regular fa-calendar mr-2 text-slate-400"></i>${formatDateFriendly(dateStr)}</td>
+                    <td class="py-3 px-6 text-sm text-right text-slate-600">${formatMoney(day.totalSales)}</td>
+                    <td class="py-3 px-6 text-sm text-right text-blue-600">${formatMoney(day.totalIncomes)}</td>
+                    <td class="py-3 px-6 text-sm text-right text-rose-600">${formatMoney(day.totalExpenses)}</td>
+                    <td class="py-3 px-6 text-sm text-right font-bold text-emerald-600">${formatMoney(day.netTotal)}</td>
+                    <td class="py-3 px-6 text-center">
+                        <button onclick="openDayDetail('${dateStr}')" class="text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded text-xs font-semibold transition-colors">
+                            Ver Día <i class="fa-solid fa-chevron-right ml-1"></i>
+                        </button>
                     </td>
                 `;
-                tableBody.appendChild(tr);
+                historyDaysBody.appendChild(tr);
             });
-
-            movementCount.textContent = `Mostrando ${filtered.length} movimientos`;
-            filteredTotal.textContent = formatMoney(total);
         }
 
-        async function loadMovements() {
-            movements = await apiFetch('/api/tesoreria/movimientos');
-        }
+        // 5. Interacciones y Modales
 
-        async function loadSummary() {
-            const summary = await apiFetch('/api/tesoreria/resumen');
-            kpiIncomes.textContent = formatMoney(summary.incomes);
-            kpiSales.textContent = formatMoney(summary.sales);
-            kpiExpenses.textContent = formatMoney(summary.expenses);
-            kpiTotal.textContent = formatMoney(summary.cashInDrawer);
-            if (kpiTransfers) {
-                kpiTransfers.textContent = formatMoney(summary.transfersDebited);
-            }
-            currentExpectedCash = Number(summary.cashInDrawer) || 0;
-            if (expectedCashEl) {
-                expectedCashEl.textContent = formatMoney(currentExpectedCash);
-            }
-            if (billCountBody && billCountBody.children.length > 0) {
-                updateCountedTotals();
-            }
-        }
+        function closeAllModals() {
+            // Cerrar Drawer
+            drawer.classList.remove('drawer-open');
+            drawer.classList.add('drawer-closed');
+            
+            // Cerrar modal Detalle Dia
+            dayModalContent.classList.remove('scale-100', 'opacity-100');
+            dayModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                dayModal.classList.add('hidden');
+                dayModal.classList.remove('flex');
+            }, 200);
 
-        async function refreshData() {
-            await Promise.all([loadMovements(), loadSummary()]);
-            renderTable();
-        }
+            // Cerrar modal Venta
+            saleModalContent.classList.remove('scale-100', 'opacity-100');
+            saleModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                saleModal.classList.add('hidden');
+                saleModal.classList.remove('flex');
+            }, 200);
 
-        function populateCategories(type) {
-            categorySelect.innerHTML = '<option value="" disabled selected>Seleccione la razon/concepto...</option>';
-            const list = categories[type] || [];
-            list.forEach((category) => {
-                const option = document.createElement('option');
-                option.value = category.id;
-                option.textContent = category.name;
-                categorySelect.appendChild(option);
-            });
+            // Ocultar Overlay general
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 200);
         }
 
         function openDrawer(defaultType) {
             form.reset();
-
-            if (defaultType === 'income') {
-                document.getElementById('type-income').checked = true;
-                populateCategories('ingreso');
-            } else {
-                document.getElementById('type-expense').checked = true;
-                populateCategories('egreso');
-            }
-
+            const typeInput = defaultType === 'income' ? document.getElementById('type-income') : document.getElementById('type-expense');
+            typeInput.checked = true;
+            populateCategories(defaultType === 'income' ? 'ingreso' : 'egreso');
+            
             overlay.classList.remove('hidden');
             setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            
             drawer.classList.remove('drawer-closed');
             drawer.classList.add('drawer-open');
             setTimeout(() => amountInput.focus(), 300);
         }
 
-        function closeDrawer() {
-            drawer.classList.remove('drawer-open');
-            drawer.classList.add('drawer-closed');
-            overlay.classList.add('opacity-0');
-            setTimeout(() => overlay.classList.add('hidden'), 300);
+        function populateCategories(type) {
+            categorySelect.innerHTML = '<option value="" disabled selected>Seleccione la razon/concepto...</option>';
+            const list = categories[type] || [];
+            list.forEach((c) => {
+                categorySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
         }
 
+        // Anular Movimiento Manual
         async function voidMovement(id) {
-            if (!confirm('Esta seguro de dar de baja este movimiento manual de caja?')) {
-                return;
-            }
-
+            if (!confirm('¿Estás seguro de eliminar este movimiento? (Esta acción afectará los totales)')) return;
             try {
                 await apiFetch(`/api/tesoreria/movimientos/${id}/anular`, { method: 'PATCH' });
-                await refreshData();
-            } catch (error) {
-                alert(error.message);
-            }
+                await loadAndGroupData(); // Recarga todo
+            } catch (e) { alert(e.message); }
         }
 
+        // Anular Venta desde modal
         async function voidSale(id) {
-            if (!confirm('Esta seguro de dar de baja esta venta?')) {
-                return;
-            }
-
+            if (!confirm('¿Estás seguro de ANULAR esta venta?')) return;
             try {
                 await apiFetch(`/api/ventas/${id}/anular`, { method: 'PATCH' });
-                await refreshData();
-            } catch (error) {
-                alert(error.message);
-            }
+                closeAllModals();
+                await loadAndGroupData();
+            } catch (error) { alert(error.message); }
         }
 
-        document.querySelectorAll('input[name="mov_type"]').forEach((radio) => {
-            radio.addEventListener('change', (event) => {
-                populateCategories(event.target.value);
-            });
-        });
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
+        // Submit de Ingreso/Egreso Manual
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
             const type = document.querySelector('input[name="mov_type"]:checked').value;
             const amount = Number(amountInput.value);
-            if (!Number.isFinite(amount) || amount <= 0) {
-                alert('El monto debe ser mayor a cero');
-                amountInput.focus();
-                return;
-            }
-
             const conceptOption = categorySelect.options[categorySelect.selectedIndex];
-            const concept = conceptOption ? conceptOption.textContent.trim() : '';
-            if (!concept) {
-                alert('Seleccione una categoria');
-                categorySelect.focus();
-                return;
-            }
-
-            const detail = detailInput.value.trim();
+            
+            if (!conceptOption || !conceptOption.value) return alert('Seleccione una categoria');
+            
             const payload = {
                 type: type === 'ingreso' ? 'INGRESO' : 'EGRESO',
-                concept,
-                detail: detail,
+                concept: conceptOption.textContent.trim(),
+                detail: detailInput.value.trim(),
                 amount
             };
 
@@ -1278,105 +684,123 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                closeDrawer();
-                await refreshData();
-            } catch (error) {
-                alert(error.message);
-            }
+                closeAllModals();
+                await loadAndGroupData();
+            } catch (error) { alert(error.message); }
         });
 
-        if (closeForm) {
-            closeForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+        // Eventos filtros de HOY
+        searchInput.addEventListener('input', updateTodayView);
+        filterType.addEventListener('change', updateTodayView);
 
-                const bills = Array.from(billCountBody.querySelectorAll('.bill-qty')).map((input) => ({
-                    denomination: Number(input.dataset.denom),
-                    quantity: Number(input.value) || 0
-                }));
+        // --- MODAL DETALLE DE JORNADA PASADA ---
+        function openDayDetail(dateStr) {
+            const dayData = groupedByDay[dateStr];
+            if(!dayData) return;
 
-                const payload = {
-                    bills,
-                    notes: closeNotesInput ? closeNotesInput.value.trim() : ''
-                };
+            document.getElementById('day-detail-title').innerHTML = `<i class="fa-regular fa-calendar-days mr-2 text-emerald-500"></i>Jornada del ${formatDateFriendly(dateStr)}`;
+            document.getElementById('day-detail-sales').textContent = formatMoney(dayData.totalSales);
+            document.getElementById('day-detail-incomes').textContent = formatMoney(dayData.totalIncomes);
+            document.getElementById('day-detail-expenses').textContent = formatMoney(dayData.totalExpenses);
+            document.getElementById('day-detail-total').textContent = formatMoney(dayData.netTotal);
 
-                try {
-                    const result = await apiFetch('/api/tesoreria/caja/cierre', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    closeCloseModal();
-                    await refreshData();
-                    alert(
-                        `Caja cerrada.\\nEsperado: ${formatMoney(result.expectedCash)}\\nContado: ${formatMoney(result.countedCash)}\\nDiferencia: ${formatMoney(result.difference)}`
-                    );
-                } catch (error) {
-                    alert(error.message);
+            const tbody = document.getElementById('day-movements-body');
+            tbody.innerHTML = '';
+            
+            dayData.movements.forEach(m => {
+                const type = (m.type || '').toLowerCase();
+                const ui = getTypeUi(type);
+                const amt = Number(m.amount) || 0;
+                
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 border-b border-slate-100';
+                
+                let btn = '-';
+                if(type === 'venta' && m.saleId) {
+                    btn = `<button onclick="openSaleModal(${m.saleId})" class="text-emerald-600 hover:underline text-xs font-semibold"><i class="fa-solid fa-receipt"></i> Ver Ticket</button>`;
                 }
+
+                tr.innerHTML = `
+                    <td class="py-2 px-6 text-sm text-slate-500">${formatTime(m.dateTime)}</td>
+                    <td class="py-2 px-6">${ui.badge}</td>
+                    <td class="py-2 px-6 text-sm text-slate-700">${escapeHtml(m.concept || '-')}</td>
+                    <td class="py-2 px-6 text-sm text-right ${ui.amountClass}">${formatMoney(amt)}</td>
+                    <td class="py-2 px-6 text-center">${btn}</td>
+                `;
+                tbody.appendChild(tr);
             });
+
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            
+            dayModal.classList.remove('hidden');
+            dayModal.classList.add('flex');
+            setTimeout(() => {
+                dayModalContent.classList.remove('scale-95', 'opacity-0');
+                dayModalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
         }
 
-        if (historyPrev) {
-            historyPrev.addEventListener('click', () => {
-                if (historyPage > 0) {
-                    historyPage -= 1;
-                    loadHistory();
-                }
-            });
-        }
-
-        if (historyNext) {
-            historyNext.addEventListener('click', () => {
-                historyPage += 1;
-                loadHistory();
-            });
-        }
-
-        if (historyFrom) {
-            historyFrom.addEventListener('change', () => {
-                historyPage = 0;
-                loadHistory();
-            });
-        }
-
-        if (historyTo) {
-            historyTo.addEventListener('change', () => {
-                historyPage = 0;
-                loadHistory();
-            });
-        }
-
-        if (historyMovSearch) {
-            historyMovSearch.addEventListener('input', () => {
-                loadHistoryMovements();
-            });
-        }
-
-        if (historyMovType) {
-            historyMovType.addEventListener('change', () => {
-                loadHistoryMovements();
-            });
-        }
-
-        if (historyMovStatus) {
-            historyMovStatus.addEventListener('change', () => {
-                loadHistoryMovements();
-            });
-        }
-
-        searchInput.addEventListener('input', renderTable);
-        filterType.addEventListener('change', renderTable);
-        if (filterStatus) {
-            filterStatus.addEventListener('change', renderTable);
-        }
-
-        (async () => {
-            populateCategories('ingreso');
+        // --- MODAL DETALLE DE VENTA ---
+        async function openSaleModal(saleId) {
             try {
-                await refreshData();
-            } catch (error) {
-                alert(error.message);
-            }
+                const sale = await apiFetch(`/api/ventas/${saleId}`);
+                
+                document.getElementById('sale-detail-ticket').textContent = `#${sale.ticket || sale.id}`;
+                document.getElementById('sale-detail-date').textContent = new Date(sale.dateTime).toLocaleString('es-AR');
+                document.getElementById('sale-detail-payment').textContent = sale.paymentMethod || 'Efectivo';
+                document.getElementById('sale-detail-status').textContent = sale.status || 'Completado';
+                
+                document.getElementById('sale-detail-subtotal').textContent = formatMoney(sale.subtotal);
+                document.getElementById('sale-detail-discount').textContent = formatMoney(sale.discount);
+                document.getElementById('sale-detail-total').textContent = formatMoney(sale.total);
+
+                const tbody = document.getElementById('sale-detail-items');
+                tbody.innerHTML = '';
+                if(sale.items && sale.items.length > 0) {
+                    sale.items.forEach(item => {
+                        tbody.innerHTML += `
+                            <tr class="border-b border-slate-100 last:border-0">
+                                <td class="py-2 px-4 text-sm text-slate-700">${escapeHtml(item.name || '-')}</td>
+                                <td class="py-2 px-4 text-sm text-slate-700 text-center">${item.quantity}</td>
+                                <td class="py-2 px-4 text-sm text-slate-700 text-right">${formatMoney(item.unitPrice)}</td>
+                                <td class="py-2 px-4 text-sm font-semibold text-slate-800 text-right">${formatMoney(item.subtotal)}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                // Cerramos el modal de día si estaba abierto
+                dayModalContent.classList.remove('scale-100', 'opacity-100');
+                dayModalContent.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    dayModal.classList.add('hidden');
+                    dayModal.classList.remove('flex');
+                }, 200);
+
+                // Mostramos overlay si no estaba
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+
+                saleModal.classList.remove('hidden');
+                saleModal.classList.add('flex');
+                setTimeout(() => {
+                    saleModalContent.classList.remove('scale-95', 'opacity-0');
+                    saleModalContent.classList.add('scale-100', 'opacity-100');
+                }, 10);
+
+            } catch(e) { alert("No se pudo cargar el detalle de la venta."); }
+        }
+
+        // --- RADIO BUTTONS (Formulario lateral) ---
+        document.querySelectorAll('input[name="mov_type"]').forEach(radio => {
+            radio.addEventListener('change', e => populateCategories(e.target.value));
+        });
+
+        // --- INIT ---
+        (async () => {
+            await autoEnsureCajaOpen();
+            await loadAndGroupData();
         })();
     </script>
 </body>

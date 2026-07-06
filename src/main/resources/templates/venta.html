@@ -1,17 +1,28 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="app-loading">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rey de Reyes</title>
-    <!-- Tailwind CSS para el diseño elegante -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome para los íconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Inter para un look moderno -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <script>
+        window.addEventListener('load', () => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        });
+        setTimeout(() => {
+            document.documentElement.classList.remove('app-loading');
+            document.documentElement.classList.add('app-ready');
+        }, 2500);
+    </script>
     <style>
+        .app-loading body {
+            visibility: hidden;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f1f5f9; /* slate-100 */
@@ -44,28 +55,21 @@
 </head>
 <body class="flex flex-col h-screen overflow-hidden text-slate-800">
 
-    <!-- Navegación Superior -->
     <header class="bg-slate-900 text-white shadow-md z-10">
         <div class="px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-store text-emerald-400 text-2xl"></i>
                 <span class="text-xl font-bold tracking-wide">Rey de reyes <span class="text-emerald-400">X</span><span> NJS</span></span>
             </div>
-                                                <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
+            <nav class="flex gap-1 bg-slate-800 p-1 rounded-lg">
                 <a href="/venta" class="px-5 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm transition-all">
                     <i class="fa-solid fa-cart-shopping mr-2"></i>Venta
-                </a>
-                <a href="/compra" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-box-open mr-2"></i>Compra
                 </a>
                 <a href="/tesoreria" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-vault mr-2"></i>Tesorer&iacute;a
                 </a>
                 <a href="/inventario" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-boxes-stacked mr-2"></i>Inventario
-                </a>
-                <a href="/clientes" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
-                    <i class="fa-solid fa-users mr-2"></i>Clientes
                 </a>
                 <a href="/estadisticas" class="px-5 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 font-medium transition-all">
                     <i class="fa-solid fa-chart-pie mr-2"></i>Estad&iacute;sticas
@@ -74,17 +78,13 @@
         </div>
     </header>
 
-    <!-- Área de Trabajo Principal -->
     <main class="flex-1 flex overflow-hidden p-6 gap-6">
         
-        <!-- Panel Izquierdo: Inputs y Grilla (70%) -->
         <div class="flex flex-col flex-1 gap-6 overflow-hidden w-2/3">
             
-            <!-- Controles de Ingreso de Producto -->
             <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                 <form id="product-form" class="flex gap-4 items-end">
                     
-                    <!-- Código Producto -->
                     <div class="flex-1">
                         <label for="codigo" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Código Producto</label>
                         <div class="relative">
@@ -95,13 +95,11 @@
                         </div>
                     </div>
 
-                    <!-- Cantidad -->
                     <div class="w-24">
                         <label for="cantidad" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cantidad</label>
                         <input type="number" id="cantidad" value="1" min="1" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-center transition-all">
                     </div>
 
-                    <!-- Buscador (Botón/Input combinado) -->
                     <div class="flex-1">
                         <label for="buscar" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscador Manual</label>
                         <div class="flex gap-2">
@@ -115,15 +113,19 @@
                                 <i class="fa-solid fa-cheese"></i>
                                 <span class="hidden lg:inline">Fiambrer&iacute;a</span>
                             </button>
+                            <button id="open-butchery-modal" type="button" class="bg-red-50 border border-slate-300 px-4 py-2.5 rounded-lg text-red-700 hover:bg-red-100 transition-colors flex items-center gap-2" title="Carnicer&iacute;a">
+                                <i class="fa-solid fa-drumstick-bite"></i>
+                                <span class="hidden lg:inline">Carnicer&iacute;a</span>
+                            </button>
+                            <button id="open-greengrocery-modal" type="button" class="bg-lime-50 border border-slate-300 px-4 py-2.5 rounded-lg text-lime-700 hover:bg-lime-100 transition-colors flex items-center gap-2" title="Verduler&iacute;a">
+                                <i class="fa-solid fa-carrot"></i>
+                                <span class="hidden lg:inline">Verduler&iacute;a</span>
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Botón Agregar (Opcional, usualmente se usa Enter en el código) -->
-
                 </form>
             </div>
 
-            <!-- Grilla de Productos -->
             <div class="bg-white flex-1 rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-left border-collapse">
@@ -138,43 +140,38 @@
                             </tr>
                         </thead>
                         <tbody id="cart-body" class="divide-y divide-slate-100">
-                            <!-- Los productos se insertarán aquí con JavaScript -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Panel Derecho: Totales y Cobro (30%) -->
         <div class="w-1/3 min-w-[320px] max-w-[400px] flex flex-col gap-6">
             
-            <!-- Display de Precio Actual / Último artículo -->
             <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 p-6 text-center relative overflow-hidden">
-                <!-- Efecto de brillo -->
                 <div class="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-20"></div>
                 
                 <h2 class="text-slate-400 text-sm font-medium uppercase tracking-widest mb-1">Total a pagar</h2>
                 <div id="last-item-name" class="text-slate-200 text-lg font-semibold truncate mb-2 h-7">---</div>
                 <div class="text-emerald-400 font-bold text-5xl tracking-tight" id="last-item-price">
-                    $0.00
+                    $ 0,00
                 </div>
             </div>
 
-            <!-- Resumen de Cuenta -->
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col flex-1">
                 <h3 class="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-3"><i class="fa-solid fa-receipt mr-2 text-slate-400"></i>Resumen de Venta</h3>
                 
                 <div class="space-y-4 mb-6 flex-1">
                     <div class="flex justify-between items-center text-slate-600">
                         <span class="font-medium">Sub Total</span>
-                        <span class="font-semibold text-lg" id="summary-subtotal">$0.00</span>
+                        <span class="font-semibold text-lg" id="summary-subtotal">$ 0,00</span>
                     </div>
                     
                     <div class="flex justify-between items-center text-rose-500">
                         <span class="font-medium cursor-pointer border-b border-dashed border-rose-300 hover:text-rose-600 transition-colors" title="Haz clic para aplicar descuento general">Descuento Total</span>
                         <div class="flex items-center">
                             <span class="mr-1">-</span>
-                            <span class="font-semibold text-lg" id="summary-discount">$0.00</span>
+                            <span class="font-semibold text-lg" id="summary-discount">$ 0,00</span>
                         </div>
                     </div>
                     <div id="summary-discount-detail" class="text-xs text-slate-500 -mt-2 hidden"></div>
@@ -185,15 +182,13 @@
                     </div>
                 </div>
 
-                <!-- Total Principal -->
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
                     <div class="flex justify-between items-end">
                         <span class="text-slate-500 font-bold uppercase tracking-wider text-sm">Total a Pagar</span>
-                        <span class="text-slate-900 font-bold text-4xl" id="summary-total">$0.00</span>
+                        <span class="text-slate-900 font-bold text-4xl" id="summary-total">$ 0,00</span>
                     </div>
                 </div>
 
-                <!-- Botones de Acción -->
                 <div class="grid grid-cols-2 gap-3 mt-auto">
                     <button onclick="clearCart()" class="py-3 px-4 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-lg hover:bg-slate-50 hover:border-slate-300 hover:text-rose-500 transition-all">
                         <i class="fa-solid fa-trash-can mr-2"></i>Cancelar
@@ -233,7 +228,7 @@
 
                 <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex justify-between">
                     <span class="text-slate-600 font-medium">Total</span>
-                    <span id="payment-total" class="text-slate-900 font-bold">$0.00</span>
+                    <span id="payment-total" class="text-slate-900 font-bold">$ 0,00</span>
                 </div>
 
                 <div id="cash-section" class="space-y-2">
@@ -241,7 +236,7 @@
                     <input id="amount-received" type="number" min="0" step="0.01" placeholder="0.00" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none">
                     <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex justify-between">
                         <span class="text-emerald-700 font-medium">Cambio</span>
-                        <span id="payment-change" class="text-emerald-700 font-bold">$0.00</span>
+                        <span id="payment-change" class="text-emerald-700 font-bold">$ 0,00</span>
                     </div>
                 </div>
 
@@ -255,64 +250,60 @@
         </div>
     </div>
 
-    <div id="deli-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
-    <div id="deli-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+    <div id="quick-amount-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden"></div>
+    <div id="quick-amount-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
             <div class="px-5 py-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-cheese mr-2 text-amber-500"></i>Fiambrer&iacute;a</h3>
-                <button id="close-deli-modal" type="button" class="text-slate-400 hover:text-slate-700">
+                <h3 id="quick-amount-title" class="text-lg font-bold text-slate-800"><i id="quick-amount-icon" class="fa-solid fa-cheese mr-2 text-amber-500"></i><span>Fiambrer&iacute;a</span></h3>
+                <button id="close-quick-amount-modal" type="button" class="text-slate-400 hover:text-slate-700">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
             <div class="p-5 space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Buscar producto</label>
-                    <input id="deli-search" type="text" placeholder="Ej: queso, jam&oacute;n" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all">
-                </div>
-
-                <div>
+                <div id="quick-product-section">
                     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Producto</label>
-                    <select id="deli-product" class="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all cursor-pointer"></select>
-                    <p id="deli-empty" class="text-xs text-slate-500 mt-2 hidden">No hay productos de fiambrer&iacute;a disponibles. Registre productos en la categor&iacute;a Fiambrer&iacute;a.</p>
+                    <div class="flex gap-2">
+                        <select id="quick-product" class="flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all cursor-pointer"></select>
+                        <button id="toggle-deli-register" type="button" class="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-200 transition-colors" title="Registrar producto">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                    <div id="deli-register-form" class="hidden mt-3 p-3 border border-slate-200 rounded-lg bg-slate-50 space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nuevo producto</label>
+                            <input id="deli-register-name" type="text" placeholder="Ej: Jam&oacute;n cocido" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Precio</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-slate-400">$</span>
+                                <input id="deli-register-price" type="number" step="0.01" min="0" placeholder="0.00" class="w-full pl-8 pr-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <p id="deli-register-status" class="text-xs text-slate-500 hidden"></p>
+                            <button id="save-deli-product" type="button" class="ml-auto px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium text-sm">Guardar</button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Precio por <span id="deli-unit-label">KG</span></label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
-                            <input id="deli-unit-price" type="number" step="0.01" min="0" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg outline-none" readonly>
-                        </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Monto</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                        <input id="quick-amount-total" type="number" step="0.01" min="0" placeholder="0.00" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Peso</label>
-                        <div class="flex">
-                            <input id="deli-weight" type="number" step="0.001" min="0" placeholder="0.000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-l-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all border-r-0">
-                            <select id="deli-weight-unit" class="px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-r-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all cursor-pointer">
-                                <option value="KG">kg</option>
-                                <option value="G">g</option>
-                            </select>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">Ingrese peso o total y se calcula autom&aacute;ticamente.</p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Total</label>
-                        <div class="relative">
-                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
-                            <input id="deli-total" type="number" step="0.01" min="0" placeholder="0.00" class="w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all">
-                        </div>
-                    </div>
+                    <p id="quick-amount-empty" class="text-xs text-slate-500 mt-2 hidden"></p>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button id="cancel-deli" type="button" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium">Cancelar</button>
-                    <button id="add-deli" type="button" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">Agregar</button>
+                    <button id="cancel-quick-amount" type="button" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium">Cancelar</button>
+                    <button id="add-quick-amount" type="button" class="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium">Agregar</button>
                 </div>
             </div>
         </div>
     </div>
 
-        <!-- Aviso de caja no abierta -->
     <div id="cash-warning" class="fixed bottom-6 left-6 w-[360px] bg-white border border-amber-200 shadow-2xl rounded-xl p-4 z-40 hidden">
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
@@ -341,7 +332,6 @@
         </div>
     </div>
 
-<!-- Script de Lógica del POS -->
     <script>
         let cart = [];
         let globalDiscount = 0;
@@ -352,8 +342,9 @@
         let comboDefinitions = [];
         let comboIds = new Set();
         let allProducts = [];
-        let deliSyncing = false;
-        let deliSelectedProductId = null;
+        let categoriesCache = [];
+        let quickAmountMode = 'deli';
+        let quickAmountSelectedProductId = null;
 
         const form = document.getElementById('product-form');
         const inputCodigo = document.getElementById('codigo');
@@ -399,19 +390,25 @@
         const openCashButton = document.getElementById('open-cash-btn');
 
         const deliButton = document.getElementById('open-deli-modal');
-        const deliOverlay = document.getElementById('deli-overlay');
-        const deliModal = document.getElementById('deli-modal');
-        const closeDeliModalButton = document.getElementById('close-deli-modal');
-        const cancelDeliButton = document.getElementById('cancel-deli');
-        const addDeliButton = document.getElementById('add-deli');
-        const deliSearchInput = document.getElementById('deli-search');
-        const deliProductSelect = document.getElementById('deli-product');
-        const deliEmptyState = document.getElementById('deli-empty');
-        const deliUnitLabel = document.getElementById('deli-unit-label');
-        const deliUnitPriceInput = document.getElementById('deli-unit-price');
-        const deliWeightInput = document.getElementById('deli-weight');
-        const deliWeightUnitSelect = document.getElementById('deli-weight-unit');
-        const deliTotalInput = document.getElementById('deli-total');
+        const butcheryButton = document.getElementById('open-butchery-modal');
+        const greengroceryButton = document.getElementById('open-greengrocery-modal');
+        const quickAmountOverlay = document.getElementById('quick-amount-overlay');
+        const quickAmountModal = document.getElementById('quick-amount-modal');
+        const quickAmountTitle = document.getElementById('quick-amount-title');
+        const quickAmountIcon = document.getElementById('quick-amount-icon');
+        const closeQuickAmountModalButton = document.getElementById('close-quick-amount-modal');
+        const cancelQuickAmountButton = document.getElementById('cancel-quick-amount');
+        const addQuickAmountButton = document.getElementById('add-quick-amount');
+        const quickProductSection = document.getElementById('quick-product-section');
+        const quickProductSelect = document.getElementById('quick-product');
+        const quickAmountInput = document.getElementById('quick-amount-total');
+        const quickAmountEmptyState = document.getElementById('quick-amount-empty');
+        const toggleDeliRegisterButton = document.getElementById('toggle-deli-register');
+        const deliRegisterForm = document.getElementById('deli-register-form');
+        const deliRegisterNameInput = document.getElementById('deli-register-name');
+        const deliRegisterPriceInput = document.getElementById('deli-register-price');
+        const deliRegisterStatus = document.getElementById('deli-register-status');
+        const saveDeliProductButton = document.getElementById('save-deli-product');
 
         const formatMoney = (amount) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount || 0);
 
@@ -446,17 +443,23 @@
             return (value || '').toString().trim().toLowerCase();
         }
 
-        function isFiambreriaProduct(product) {
-            const categoryName = normalizeText(product && product.categoryName ? product.categoryName : '');
-            return categoryName.includes('fiambr');
+        function normalizeSearchText(value) {
+            return normalizeText(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
 
-        function getDeliBaseUnit(product) {
-            if (!product) return 'KG';
-            if (isFiambreriaProduct(product)) return 'KG';
-            const unit = normalizeUnit(product.unit);
-            if (unit === 'KG' || unit === 'G') return unit;
-            return 'KG';
+        function isFiambreriaProduct(product) {
+            const categoryName = normalizeSearchText(product && product.categoryName ? product.categoryName : '');
+            return categoryName.includes('fiambr');
+        }
+        
+        function isButcheryProduct(product) {
+            const categoryName = normalizeSearchText(product && product.categoryName ? product.categoryName : '');
+            return categoryName.includes('carnic');
+        }
+
+        function isGreengroceryProduct(product) {
+            const categoryName = normalizeSearchText(product && product.categoryName ? product.categoryName : '');
+            return categoryName.includes('verdul');
         }
 
         function formatQty(item) {
@@ -499,7 +502,7 @@
                 openCashNotes.value = '';
             }
             const disabled = !cajaOpen;
-            [inputCodigo, inputCantidad, inputBuscar, checkoutButton, deliButton].forEach((el) => {
+            [inputCodigo, inputCantidad, inputBuscar, checkoutButton, deliButton, butcheryButton, greengroceryButton].forEach((el) => {
                 if (!el) return;
                 el.disabled = disabled;
                 el.classList.toggle('opacity-50', disabled);
@@ -674,190 +677,301 @@
                 const products = Array.isArray(data) ? data : [];
                 buildProductsById(products);
                 buildComboDefinitions(products);
-                renderDeliProducts();
+                renderQuickAmountProducts();
                 updateUI();
             } catch (error) {
                 console.error(error);
                 buildProductsById([]);
                 buildComboDefinitions([]);
-                renderDeliProducts();
+                renderQuickAmountProducts();
                 updateUI();
             }
         }
 
-        function getSelectedDeliProduct() {
-            if (!deliProductSelect) return null;
-            const id = normalizeProductId(deliProductSelect.value);
+        async function loadCategories() {
+            const response = await fetch('/api/categorias?status=all');
+            if (!response.ok) throw new Error('No se pudieron cargar categorias');
+            const data = await response.json();
+            categoriesCache = Array.isArray(data) ? data : [];
+            return categoriesCache;
+        }
+
+        function categoryMatches(category, name) {
+            return normalizeSearchText(category && category.nombre).includes(normalizeSearchText(name));
+        }
+
+        async function ensureCategory(name) {
+            if (!categoriesCache.length) {
+                await loadCategories();
+            }
+
+            let category = categoriesCache.find(cat => categoryMatches(cat, name));
+            if (category && category.activa === false) {
+                await fetch(`/api/categorias/${category.id}/estado`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ activa: true })
+                });
+                await loadCategories();
+                category = categoriesCache.find(cat => categoryMatches(cat, name));
+            }
+
+            if (category) return category;
+
+            const response = await fetch('/api/categorias', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre: name, descripcion: '' })
+            });
+            if (!response.ok) throw new Error(`No se pudo crear la categoria ${name}.`);
+            const created = await response.json();
+            await loadCategories();
+            return created;
+        }
+
+        function buildQuickProductPayload({ name, categoryId, price, barcodePrefix }) {
+            return {
+                barcode: `${barcodePrefix}-${Date.now()}`,
+                name,
+                description: '',
+                categoryId,
+                supplierId: null,
+                unit: 'UN',
+                type: 'Producto',
+                cost: 0,
+                price,
+                stock: 999999,
+                minStock: 0,
+                active: true
+            };
+        }
+
+        async function createQuickProduct(payload) {
+            const response = await fetch('/api/productos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const message = await response.text();
+                throw new Error(message || 'No se pudo registrar el producto.');
+            }
+            return response.json();
+        }
+
+        async function ensureGreengroceryProduct() {
+            const existing = getQuickAmountProducts('greengrocery')[0];
+            if (existing) return existing;
+
+            const category = await ensureCategory('Verduleria');
+            const created = await createQuickProduct(buildQuickProductPayload({
+                name: 'Verduleria',
+                categoryId: category.id,
+                price: 1,
+                barcodePrefix: 'VERD'
+            }));
+            await loadProductsForCombos();
+            return productsById.get(normalizeProductId(created.id)) || created;
+        }
+
+        function getSelectedQuickAmountProduct() {
+            if (quickAmountMode === 'greengrocery') {
+                return getQuickAmountProducts('greengrocery')[0] || null;
+            }
+            if (!quickProductSelect) return null;
+            const id = normalizeProductId(quickProductSelect.value);
             if (id === null) return null;
-            deliSelectedProductId = id;
+            quickAmountSelectedProductId = id;
             return productsById.get(id) || null;
         }
 
-        function getDeliProducts() {
-            const query = deliSearchInput ? normalizeText(deliSearchInput.value) : '';
+        function getQuickAmountProducts(mode = quickAmountMode) {
             return (allProducts || [])
                 .filter(product => {
                     if (!product || product.combo) return false;
                     if (product.active === false) return false;
-                    if (!isFiambreriaProduct(product)) return false;
-                    if (!query) return true;
-                    const text = `${product.name || ''} ${product.barcode || ''}`.toLowerCase();
-                    return text.includes(query);
+                    if (mode === 'greengrocery') return isGreengroceryProduct(product);
+                    if (mode === 'butchery') return isButcheryProduct(product);
+                    return isFiambreriaProduct(product);
                 })
                 .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         }
 
-        function renderDeliProducts() {
-            if (!deliProductSelect) return;
-            const products = getDeliProducts();
-            deliProductSelect.innerHTML = '';
+        function renderQuickAmountProducts() {
+            if (!quickProductSelect) return;
+            const products = getQuickAmountProducts();
+            const isGreengrocery = quickAmountMode === 'greengrocery';
+            quickProductSelect.innerHTML = '';
+            if (quickProductSection) quickProductSection.classList.toggle('hidden', isGreengrocery);
 
             if (!products.length) {
-                if (deliEmptyState) deliEmptyState.classList.remove('hidden');
-                deliProductSelect.disabled = true;
-                if (deliUnitPriceInput) deliUnitPriceInput.value = '';
-                if (deliWeightInput) deliWeightInput.value = '';
-                if (deliTotalInput) deliTotalInput.value = '';
-                if (addDeliButton) addDeliButton.disabled = true;
+                if (isGreengrocery) {
+                    if (quickAmountEmptyState) quickAmountEmptyState.classList.add('hidden');
+                    quickProductSelect.disabled = true;
+                    if (addQuickAmountButton) addQuickAmountButton.disabled = false;
+                    return;
+                }
+                if (quickAmountEmptyState) {
+                    let msg = 'No hay productos de fiambreria disponibles. Registre productos en la categoria Fiambreria.';
+                    if (quickAmountMode === 'butchery') msg = 'No hay productos de carniceria disponibles. Registre productos en la categoria Carniceria.';
+                    quickAmountEmptyState.textContent = msg;
+                    quickAmountEmptyState.classList.remove('hidden');
+                }
+                quickProductSelect.disabled = true;
+                if (quickAmountInput) quickAmountInput.value = '';
+                if (addQuickAmountButton) addQuickAmountButton.disabled = true;
                 return;
             }
 
-            if (deliEmptyState) deliEmptyState.classList.add('hidden');
-            deliProductSelect.disabled = false;
-            if (addDeliButton) addDeliButton.disabled = false;
+            if (quickAmountEmptyState) quickAmountEmptyState.classList.add('hidden');
+            quickProductSelect.disabled = false;
+            if (addQuickAmountButton) addQuickAmountButton.disabled = false;
+            if (isGreengrocery) return;
 
             products.forEach(product => {
                 const option = document.createElement('option');
                 option.value = String(product.id);
-                const unitLabel = getDeliBaseUnit(product);
-                option.textContent = `${product.name}${unitLabel ? ` · ${unitLabel}` : ''}`;
-                deliProductSelect.appendChild(option);
+                option.textContent = product.name || 'Producto';
+                quickProductSelect.appendChild(option);
             });
 
-            const preferredId = deliSelectedProductId && products.some(p => p.id === deliSelectedProductId)
-                ? deliSelectedProductId
+            const preferredId = quickAmountSelectedProductId && products.some(p => p.id === quickAmountSelectedProductId)
+                ? quickAmountSelectedProductId
                 : products[0].id;
-            deliProductSelect.value = String(preferredId);
-            updateDeliProductDetails();
+            quickProductSelect.value = String(preferredId);
         }
 
-        function updateDeliProductDetails() {
-            const product = getSelectedDeliProduct();
-            if (!product) return;
-            const unit = getDeliBaseUnit(product);
-            if (deliUnitLabel) deliUnitLabel.textContent = unit;
-            if (deliUnitPriceInput) {
-                const price = Number(product.price) || 0;
-                deliUnitPriceInput.value = price.toFixed(2);
+        function setQuickAmountMode(mode) {
+            quickAmountMode = mode;
+            const isGreengrocery = mode === 'greengrocery';
+            const isButchery = mode === 'butchery';
+            
+            if (quickAmountTitle) {
+                let label = 'Fiambrer&iacute;a';
+                if (isGreengrocery) label = 'Verduler&iacute;a';
+                if (isButchery) label = 'Carnicer&iacute;a';
+                quickAmountTitle.querySelector('span').innerHTML = label;
             }
-            if (deliWeightUnitSelect) {
-                deliWeightUnitSelect.value = 'G';
+            if (quickAmountIcon) {
+                let iconClass = 'fa-solid fa-cheese mr-2 text-amber-500';
+                if (isGreengrocery) iconClass = 'fa-solid fa-carrot mr-2 text-lime-500';
+                if (isButchery) iconClass = 'fa-solid fa-drumstick-bite mr-2 text-red-500';
+                quickAmountIcon.className = iconClass;
             }
-            updateDeliWeightInputUI();
-            updateDeliWeightInputUI();
-            if (deliWeightInput) deliWeightInput.value = '';
-            if (deliTotalInput) deliTotalInput.value = '';
+            if (addQuickAmountButton) {
+                let btnClass = 'px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 font-medium';
+                if (isGreengrocery) btnClass = 'px-4 py-2 bg-lime-500 text-white rounded-lg hover:bg-lime-600 font-medium';
+                if (isButchery) btnClass = 'px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 font-medium';
+                addQuickAmountButton.className = btnClass;
+            }
+            
+            // Ocultar botón de registro sólo si es verdulería
+            if (toggleDeliRegisterButton) toggleDeliRegisterButton.classList.toggle('hidden', isGreengrocery);
+            if (deliRegisterForm) deliRegisterForm.classList.add('hidden');
+            if (deliRegisterStatus) deliRegisterStatus.classList.add('hidden');
+            if (quickAmountInput) quickAmountInput.value = '';
+            
+            // Adaptar los inputs y el select para la combinación de colores (esto es opcional pero mantiene el estilo unificado)
+            if (quickAmountInput) {
+                quickAmountInput.className = `w-full pl-8 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-${isButchery ? 'red' : 'amber'}-400 focus:border-${isButchery ? 'red' : 'amber'}-400 outline-none transition-all`;
+            }
+            if (quickProductSelect) {
+                quickProductSelect.className = `flex-1 px-4 py-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-${isButchery ? 'red' : 'amber'}-400 focus:border-${isButchery ? 'red' : 'amber'}-400 outline-none transition-all cursor-pointer`;
+            }
+
+            renderQuickAmountProducts();
         }
 
-        function updateDeliWeightInputUI() {
-            if (!deliWeightInput || !deliWeightUnitSelect) return;
-            const unit = normalizeUnit(deliWeightUnitSelect.value);
-            if (unit === 'G') {
-                deliWeightInput.step = '1';
-                deliWeightInput.placeholder = '0';
+        function openQuickAmountModal(mode = 'deli') {
+            if (!cajaOpen) {
+                setCajaOpenState(false);
+                return;
+            }
+            setQuickAmountMode(mode);
+            if (quickAmountOverlay) quickAmountOverlay.classList.remove('hidden');
+            if (quickAmountModal) {
+                quickAmountModal.classList.remove('hidden');
+                quickAmountModal.classList.add('flex');
+            }
+            if (quickAmountInput) quickAmountInput.focus();
+        }
+
+        function closeQuickAmountModal() {
+            if (quickAmountOverlay) quickAmountOverlay.classList.add('hidden');
+            if (quickAmountModal) {
+                quickAmountModal.classList.add('hidden');
+                quickAmountModal.classList.remove('flex');
+            }
+        }
+
+        async function saveDeliProduct() {
+            const name = deliRegisterNameInput ? deliRegisterNameInput.value.trim() : '';
+            const price = parseNumberInput(deliRegisterPriceInput ? deliRegisterPriceInput.value : '');
+
+            if (!name) {
+                setDeliRegisterStatus('Ingrese el nombre del producto.', 'error');
+                return;
+            }
+            if (price == null || price <= 0) {
+                setDeliRegisterStatus('Ingrese un precio valido.', 'error');
+                return;
+            }
+
+            if (saveDeliProductButton) saveDeliProductButton.disabled = true;
+            try {
+                const catName = quickAmountMode === 'butchery' ? 'Carniceria' : 'Fiambreria';
+                const prefix = quickAmountMode === 'butchery' ? 'CARN' : 'FIAM';
+                
+                const category = await ensureCategory(catName);
+                const created = await createQuickProduct(buildQuickProductPayload({
+                    name,
+                    categoryId: category.id,
+                    price: roundMoney(price),
+                    barcodePrefix: prefix
+                }));
+                
+                await loadProductsForCombos();
+                quickAmountSelectedProductId = normalizeProductId(created.id);
+                renderQuickAmountProducts();
+                
+                if (quickProductSelect && quickAmountSelectedProductId != null) {
+                    quickProductSelect.value = String(quickAmountSelectedProductId);
+                }
+                if (deliRegisterNameInput) deliRegisterNameInput.value = '';
+                if (deliRegisterPriceInput) deliRegisterPriceInput.value = '';
+                if (deliRegisterForm) deliRegisterForm.classList.add('hidden');
+                setDeliRegisterStatus('Producto agregado al combo.', 'success');
+            } catch (error) {
+                setDeliRegisterStatus(error.message || 'No se pudo registrar el producto.', 'error');
+            } finally {
+                if (saveDeliProductButton) saveDeliProductButton.disabled = false;
+            }
+        }
+
+        function setDeliRegisterStatus(message, type = 'info') {
+            if (!deliRegisterStatus) return;
+            deliRegisterStatus.textContent = message;
+            deliRegisterStatus.classList.remove('hidden', 'text-slate-500', 'text-emerald-600', 'text-rose-600');
+            if (type === 'success') {
+                deliRegisterStatus.classList.add('text-emerald-600');
+            } else if (type === 'error') {
+                deliRegisterStatus.classList.add('text-rose-600');
             } else {
-                deliWeightInput.step = '0.001';
-                deliWeightInput.placeholder = '0.000';
+                deliRegisterStatus.classList.add('text-slate-500');
             }
         }
 
-        function getDeliBaseQtyFromWeight() {
-            const product = getSelectedDeliProduct();
-            if (!product) return null;
-            const weight = parseNumberInput(deliWeightInput ? deliWeightInput.value : '');
-            if (weight == null || weight <= 0) return null;
-            const baseUnit = getDeliBaseUnit(product);
-            const inputUnit = normalizeUnit(deliWeightUnitSelect ? deliWeightUnitSelect.value : baseUnit);
-            if (baseUnit === inputUnit) return weight;
-            if (baseUnit === 'KG' && inputUnit === 'G') return weight / 1000;
-            if (baseUnit === 'G' && inputUnit === 'KG') return weight * 1000;
-            return weight;
-        }
-
-        function syncDeliTotalFromWeight() {
-            if (deliSyncing) return;
-            const product = getSelectedDeliProduct();
-            if (!product || !deliTotalInput) return;
-            const qty = getDeliBaseQtyFromWeight();
-            if (qty == null) {
-                deliTotalInput.value = '';
-                return;
-            }
-            const price = Number(product.price) || 0;
-            if (price <= 0) {
-                deliTotalInput.value = '';
-                return;
-            }
-            deliSyncing = true;
-            deliTotalInput.value = roundMoney(price * qty).toFixed(2);
-            deliSyncing = false;
-        }
-
-        function syncDeliWeightFromTotal() {
-            if (deliSyncing) return;
-            const product = getSelectedDeliProduct();
-            if (!product || !deliWeightInput) return;
-            const total = parseNumberInput(deliTotalInput ? deliTotalInput.value : '');
-            const price = Number(product.price) || 0;
-            if (total == null || total <= 0 || price <= 0) {
-                deliWeightInput.value = '';
-                return;
-            }
-            const baseUnit = getDeliBaseUnit(product);
-            const inputUnit = normalizeUnit(deliWeightUnitSelect ? deliWeightUnitSelect.value : baseUnit);
-            let qtyBase = roundQty(total / price);
-            let displayQty = qtyBase;
-            if (baseUnit === 'KG' && inputUnit === 'G') displayQty = qtyBase * 1000;
-            if (baseUnit === 'G' && inputUnit === 'KG') displayQty = qtyBase / 1000;
-            deliSyncing = true;
-            const decimals = inputUnit === 'G' ? 0 : 3;
-            deliWeightInput.value = Number(roundQty(displayQty)).toFixed(decimals);
-            deliSyncing = false;
-        }
-
-        function openDeliModal() {
+        async function addQuickAmountItem() {
             if (!cajaOpen) {
                 setCajaOpenState(false);
                 return;
             }
-            if (deliOverlay) deliOverlay.classList.remove('hidden');
-            if (deliModal) {
-                deliModal.classList.remove('hidden');
-                deliModal.classList.add('flex');
-            }
-            if (deliSearchInput) {
-                deliSearchInput.value = '';
-                deliSearchInput.focus();
-            }
-            renderDeliProducts();
-        }
-
-        function closeDeliModal() {
-            if (deliOverlay) deliOverlay.classList.add('hidden');
-            if (deliModal) {
-                deliModal.classList.add('hidden');
-                deliModal.classList.remove('flex');
-            }
-        }
-
-        function addDeliItem() {
-            if (!cajaOpen) {
-                setCajaOpenState(false);
-                return;
-            }
-            const product = getSelectedDeliProduct();
+            const product = quickAmountMode === 'greengrocery'
+                ? await ensureGreengroceryProduct()
+                : getSelectedQuickAmountProduct();
+                
             if (!product) {
-                alert('Seleccione un producto.');
+                alert(quickAmountMode === 'greengrocery' ? 'No hay producto base de verduleria.' : 'Seleccione un producto.');
                 return;
             }
             const price = Number(product.price) || 0;
@@ -865,27 +979,25 @@
                 alert('El producto no tiene precio de venta.');
                 return;
             }
-            let qty = getDeliBaseQtyFromWeight();
-            if (qty == null) {
-                const total = parseNumberInput(deliTotalInput ? deliTotalInput.value : '');
-                if (total != null && total > 0) {
-                    qty = roundQty(total / price);
-                }
-            }
+            const total = parseNumberInput(quickAmountInput ? quickAmountInput.value : '');
+            const qty = total != null && total > 0 ? roundQty(total / price) : null;
             if (qty == null || qty <= 0) {
-                alert('Ingrese un peso o total valido.');
+                alert('Ingrese un monto valido.');
                 return;
             }
-            const unit = getDeliBaseUnit(product);
-            addProductToCart(product.id, product.barcode || String(product.id), product.name, price, roundQty(qty), { unit, isWeight: true });
-            closeDeliModal();
+            addProductToCart(product.id, product.barcode || String(product.id), product.name, price, 1, {
+                checkoutQty: qty,
+                displayPrice: roundMoney(total),
+                subtotal: roundMoney(total),
+                noMerge: true
+            });
+            closeQuickAmountModal();
             if (inputCodigo) inputCodigo.focus();
         }
 
-        function isDeliModalOpen() {
-            return deliModal && !deliModal.classList.contains('hidden');
+        function isQuickAmountModalOpen() {
+            return quickAmountModal && !quickAmountModal.classList.contains('hidden');
         }
-
         function isPaymentModalOpen() {
             return paymentModal && !paymentModal.classList.contains('hidden');
         }
@@ -943,16 +1055,21 @@
         }
 
         function addProductToCart(productId, code, name, price, qty, meta = {}) {
-            const existingItemIndex = cart.findIndex(item => item.code === code);
+            const existingItemIndex = meta.noMerge ? -1 : cart.findIndex(item => item.code === code);
             const safeQty = roundQty(Number(qty) || 0);
             const unit = meta.unit ? normalizeUnit(meta.unit) : null;
             const isWeight = !!meta.isWeight;
-            const unitPrice = Number(price) || 0;
+            const unitPrice = Number(meta.displayPrice != null ? meta.displayPrice : price) || 0;
+            const lineSubtotal = meta.subtotal != null ? roundMoney(meta.subtotal) : roundMoney(unitPrice * safeQty);
+            const checkoutQty = meta.checkoutQty != null ? roundQty(meta.checkoutQty) : null;
 
             if (existingItemIndex !== -1) {
                 const current = cart[existingItemIndex];
                 current.qty = roundQty((Number(current.qty) || 0) + safeQty);
-                current.subtotal = roundMoney(current.qty * current.price);
+                current.subtotal = roundMoney((Number(current.subtotal) || 0) + lineSubtotal);
+                if (checkoutQty != null) {
+                    current.checkoutQty = roundQty((Number(current.checkoutQty) || 0) + checkoutQty);
+                }
                 if (!current.productId && productId != null) {
                     current.productId = productId;
                 }
@@ -967,7 +1084,8 @@
                     name,
                     price: unitPrice,
                     qty: safeQty,
-                    subtotal: roundMoney(unitPrice * safeQty),
+                    subtotal: lineSubtotal,
+                    checkoutQty,
                     isWeight,
                     unit
                 });
@@ -1128,7 +1246,7 @@
             cart.splice(index, 1);
             if (cart.length === 0) {
                 lastItemName.textContent = '---';
-                lastItemPrice.textContent = '$0.00';
+                lastItemPrice.textContent = '$ 0,00';
             }
             updateUI();
             inputCodigo.focus();
@@ -1140,7 +1258,7 @@
 
             cart = [];
             lastItemName.textContent = '---';
-            lastItemPrice.textContent = '$0.00';
+            lastItemPrice.textContent = '$ 0,00';
             closePaymentModal();
             updateUI();
             inputCodigo.focus();
@@ -1201,7 +1319,7 @@
             const payload = {
                 items: cart.map(item => ({
                     barcode: item.code,
-                    quantity: item.qty
+                    quantity: item.checkoutQty != null ? item.checkoutQty : item.qty
                 })),
                 discount: roundMoney(globalDiscount),
                 payment: {
@@ -1331,46 +1449,55 @@
         }
 
         if (deliButton) {
-            deliButton.addEventListener('click', openDeliModal);
+            deliButton.addEventListener('click', () => openQuickAmountModal('deli'));
         }
-        if (closeDeliModalButton) {
-            closeDeliModalButton.addEventListener('click', closeDeliModal);
+        if (butcheryButton) {
+            butcheryButton.addEventListener('click', () => openQuickAmountModal('butchery'));
         }
-        if (cancelDeliButton) {
-            cancelDeliButton.addEventListener('click', closeDeliModal);
+        if (greengroceryButton) {
+            greengroceryButton.addEventListener('click', () => openQuickAmountModal('greengrocery'));
         }
-        if (deliOverlay) {
-            deliOverlay.addEventListener('click', closeDeliModal);
+        if (closeQuickAmountModalButton) {
+            closeQuickAmountModalButton.addEventListener('click', closeQuickAmountModal);
         }
-        if (addDeliButton) {
-            addDeliButton.addEventListener('click', addDeliItem);
+        if (cancelQuickAmountButton) {
+            cancelQuickAmountButton.addEventListener('click', closeQuickAmountModal);
         }
-        if (deliSearchInput) {
-            deliSearchInput.addEventListener('input', () => {
-                deliSelectedProductId = null;
-                renderDeliProducts();
+        if (quickAmountOverlay) {
+            quickAmountOverlay.addEventListener('click', closeQuickAmountModal);
+        }
+        if (addQuickAmountButton) {
+            addQuickAmountButton.addEventListener('click', () => {
+                addQuickAmountItem().catch(error => alert(error.message || 'No se pudo agregar el producto.'));
             });
         }
-        if (deliProductSelect) {
-            deliProductSelect.addEventListener('change', updateDeliProductDetails);
+        if (quickProductSelect) {
+            quickProductSelect.addEventListener('change', () => {
+                quickAmountSelectedProductId = normalizeProductId(quickProductSelect.value);
+            });
         }
-        if (deliWeightInput) {
-            deliWeightInput.addEventListener('input', syncDeliTotalFromWeight);
-        }
-        if (deliTotalInput) {
-            deliTotalInput.addEventListener('input', syncDeliWeightFromTotal);
-        }
-        if (deliWeightUnitSelect) {
-            deliWeightUnitSelect.addEventListener('change', () => {
-                updateDeliWeightInputUI();
-                if (deliWeightInput && deliWeightInput.value) {
-                    syncDeliTotalFromWeight();
-                } else if (deliTotalInput && deliTotalInput.value) {
-                    syncDeliWeightFromTotal();
+        if (toggleDeliRegisterButton) {
+            toggleDeliRegisterButton.addEventListener('click', () => {
+                if (!deliRegisterForm) return;
+                deliRegisterForm.classList.toggle('hidden');
+                if (!deliRegisterForm.classList.contains('hidden') && deliRegisterNameInput) {
+                    deliRegisterNameInput.focus();
                 }
             });
         }
-
+        if (saveDeliProductButton) {
+            saveDeliProductButton.addEventListener('click', () => {
+                saveDeliProduct().catch(error => setDeliRegisterStatus(error.message || 'No se pudo registrar el producto.', 'error'));
+            });
+        }
+        if (quickAmountInput) {
+            quickAmountInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addQuickAmountItem().catch(error => alert(error.message || 'No se pudo agregar el producto.'));
+                }
+            });
+        }
         document.addEventListener('click', (event) => {
             if (!searchContainer.contains(event.target)) {
                 hideSearchResults();
@@ -1379,13 +1506,13 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'F12') {
-                if (isDeliModalOpen()) return;
+                if (isQuickAmountModalOpen()) return;
                 e.preventDefault();
                 openPaymentModal();
             }
             if (e.key === 'Escape') {
-                if (isDeliModalOpen()) {
-                    closeDeliModal();
+                if (isQuickAmountModalOpen()) {
+                    closeQuickAmountModal();
                     return;
                 }
                 if (isPaymentModalOpen()) {
@@ -1393,7 +1520,7 @@
                 }
             }
             if (e.key.length === 1 && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
-                if (isDeliModalOpen() || isPaymentModalOpen()) return;
+                if (isQuickAmountModalOpen() || isPaymentModalOpen()) return;
                 inputCodigo.focus();
             }
         });
@@ -1422,7 +1549,7 @@
                 alert(`Venta registrada. Ticket ${response.ticket}.`);
                 cart = [];
                 lastItemName.textContent = '---';
-                lastItemPrice.textContent = '$0.00';
+                lastItemPrice.textContent = '$ 0,00';
                 updateUI();
                 closePaymentModal();
                 inputCodigo.focus();
