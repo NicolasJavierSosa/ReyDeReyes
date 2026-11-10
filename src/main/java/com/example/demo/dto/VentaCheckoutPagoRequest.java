@@ -1,11 +1,11 @@
 package com.example.demo.dto;
 
-import com.example.demo.enums.MetodoPago;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
 public record VentaCheckoutPagoRequest(
-	@NotNull MetodoPago method,
+	/** Codigo del metodo de pago (EFECTIVO, TRANSFERENCIA, ...). */
+	@NotBlank String method,
 	@DecimalMin("0.0") BigDecimal amountReceived
 ) {}

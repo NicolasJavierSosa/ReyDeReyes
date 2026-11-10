@@ -1,39 +1,43 @@
 package com.example.demo.modelo;
 
+import java.util.UUID;
+
 import jakarta.persistence.Column;
-import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
-import lombok.AllArgsConstructor;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Cliente del comercio. No es un usuario del sistema. */
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Entity
-@DiscriminatorValue("CLIENTE")
-public class Cliente extends Usuario {
+@Table(name = "clientes")
+public class Cliente extends EntidadSincronizada {
 
-	@Column(length = 40, unique = true)
-	private String documento;
+	@Id
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
-	@Column(length = 120)
+	@Column(nullable = false, length = 120)
 	private String nombre;
 
-	@Column(length = 120)
+	@Column(nullable = false, length = 120)
 	private String apellido;
 
-	@Column(length = 32)
+	@Column(nullable = false, length = 32)
 	private String telefono;
 
-	@Column(length = 120)
+	@Column(nullable = false, length = 120)
 	private String email;
 
-	@Column(length = 255)
-	private String direccion;
-
-	@Column(length = 255)
-	private String notas;
+	@Column(nullable = false)
+	private Boolean activo;
 }

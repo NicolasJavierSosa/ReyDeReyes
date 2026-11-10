@@ -1,13 +1,14 @@
 package com.example.demo;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+/**
+ * Las pruebas de integracion necesitan un PostgreSQL de prueba. Se ejecutan solo si
+ * esta definida la variable REYDEREYES_TEST_DB_URL (ver BaseIntegracionTest).
+ */
 class DemoApplicationTests {
 
 	@Test
-	void contextLoads() {
+	void compila() {
 	}
-
 }

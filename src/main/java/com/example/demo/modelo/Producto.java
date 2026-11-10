@@ -1,52 +1,39 @@
 package com.example.demo.modelo;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.Builder.Default;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Entity
-@Table(
-	name = "productos",
-	indexes = {
-		@Index(name = "idx_producto_nombre", columnList = "nombre"),
-		@Index(name = "idx_producto_categoria", columnList = "categoria_id"),
-		@Index(name = "idx_producto_proveedor", columnList = "proveedor_id")
-	}
-)
-public class Producto {
+@Table(name = "productos")
+public class Producto extends EntidadSincronizada {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
-	@Column(name = "codigo_barra", unique = true, length = 64)
+	@Column(name = "codigo_barra", nullable = false, unique = true, length = 64)
 	private String codigoBarra;
 
 	@Column(nullable = false, length = 120)
@@ -55,27 +42,24 @@ public class Producto {
 	@Column(length = 500)
 	private String descripcion;
 
-	@Column(precision = 14, scale = 2)
+	@Column(name = "precio_costo", nullable = false, precision = 14, scale = 2)
 	private BigDecimal precioCosto;
 
-	@Column(nullable = false, precision = 14, scale = 2)
+	@Column(name = "precio_venta", nullable = false, precision = 14, scale = 2)
 	private BigDecimal precioVenta;
 
 	@Column(nullable = false)
 	private Boolean activo;
 
-	@Column(nullable = false)
-	private LocalDate fechaVencimiento;
-
-	@Column(nullable = false)
-	private boolean combo;
+	@Column(name = "stock_minimo", nullable = false, precision = 14, scale = 3)
+	private BigDecimal stockMinimo;
 
 	@ManyToOne
 	@JoinColumn(name = "categoria_id")
 	private Categoria categoria;
 
 	@ManyToOne
-	@JoinColumn(name = "unidad_medida_id")
+	@JoinColumn(name = "unidad_medida")
 	private UnidadMedida unidadMedida;
 
 	@ManyToOne
@@ -86,14 +70,12 @@ public class Producto {
 	@JoinColumn(name = "proveedor_id")
 	private Proveedor proveedor;
 
-	@ManyToMany
-	@JoinTable(
-		name = "combo_productos",
-		joinColumns = @JoinColumn(name = "combo_id"),
-		inverseJoinColumns = @JoinColumn(name = "producto_id")
-	)
-	@Default
-	private List<Producto> comboProductos = new ArrayList<>();
+	@Column(nullable = false)
+	private boolean combo;
+
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(name = "combo_items", nullable = false, columnDefinition = "jsonb")
+	private List<ComboItem> comboItems = new ArrayList<>();
 
 	@ManyToOne
 	@JoinColumn(name = "combo_grupo_categoria_id")
@@ -102,8 +84,7 @@ public class Producto {
 	@Column(name = "combo_grupo_cantidad")
 	private Integer comboGrupoCantidad;
 
-	@OneToOne(mappedBy = "producto")
-	private Stock stock;
-
-
+	public boolean isComboDeGrupo() {
+		return combo && comboGrupoCategoria != null && comboGrupoCantidad != null && comboGrupoCantidad > 0;
+	}
 }

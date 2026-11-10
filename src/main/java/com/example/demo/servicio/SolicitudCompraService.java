@@ -7,15 +7,14 @@ import com.example.demo.dto.SolicitudCompraRecepcionItemRequest;
 import com.example.demo.dto.SolicitudCompraRecepcionRequest;
 import com.example.demo.dto.SolicitudCompraRequest;
 import com.example.demo.enums.EstadoSolicitudCompra;
+import com.example.demo.enums.TipoMovimientoStock;
 import com.example.demo.modelo.Producto;
 import com.example.demo.modelo.Proveedor;
 import com.example.demo.modelo.SolicitudCompra;
 import com.example.demo.modelo.SolicitudCompraItem;
-import com.example.demo.modelo.Stock;
 import com.example.demo.repositorio.ProductoRepository;
 import com.example.demo.repositorio.ProveedorRepository;
 import com.example.demo.repositorio.SolicitudCompraRepository;
-import com.example.demo.repositorio.StockRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -25,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,18 +39,18 @@ public class SolicitudCompraService {
 	private final SolicitudCompraRepository solicitudCompraRepository;
 	private final ProveedorRepository proveedorRepository;
 	private final ProductoRepository productoRepository;
-	private final StockRepository stockRepository;
+	private final StockService stockService;
 
 	public SolicitudCompraService(
 		SolicitudCompraRepository solicitudCompraRepository,
 		ProveedorRepository proveedorRepository,
 		ProductoRepository productoRepository,
-		StockRepository stockRepository
+		StockService stockService
 	) {
 		this.solicitudCompraRepository = solicitudCompraRepository;
 		this.proveedorRepository = proveedorRepository;
 		this.productoRepository = productoRepository;
-		this.stockRepository = stockRepository;
+		this.stockService = stockService;
 	}
 
 	@Transactional(readOnly = true)
@@ -79,7 +79,7 @@ public class SolicitudCompraService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Proveedor inactivo");
 		}
 
-		Set<Long> productIds = request.items().stream()
+		Set<UUID> productIds = request.items().stream()
 			.map(SolicitudCompraItemRequest::productId)
 			.filter(Objects::nonNull)
 			.collect(Collectors.toSet());
@@ -87,7 +87,7 @@ public class SolicitudCompraService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar productos");
 		}
 
-		Map<Long, Producto> products = productoRepository.findAllById(productIds).stream()
+		Map<UUID, Producto> products = productoRepository.findAllById(productIds).stream()
 			.collect(Collectors.toMap(Producto::getId, p -> p));
 
 		SolicitudCompra solicitud = new SolicitudCompra();
@@ -110,7 +110,7 @@ public class SolicitudCompraService {
 			entity.setCantidadSolicitada(qty);
 			entity.setCantidadRecibida(BigDecimal.ZERO);
 			return entity;
-		}).toList();
+		}).collect(Collectors.toCollection(java.util.ArrayList::new));
 
 		solicitud.setItems(items);
 		SolicitudCompra saved = solicitudCompraRepository.save(solicitud);
@@ -118,7 +118,7 @@ public class SolicitudCompraService {
 	}
 
 	@Transactional
-	public SolicitudCompraDto recepcionar(Long id, SolicitudCompraRecepcionRequest request) {
+	public SolicitudCompraDto recepcionar(UUID id, SolicitudCompraRecepcionRequest request) {
 		if (request == null || request.items() == null || request.items().isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe informar cantidades recibidas");
 		}
@@ -126,10 +126,10 @@ public class SolicitudCompraService {
 		SolicitudCompra solicitud = solicitudCompraRepository.findByIdWithItems(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
 
-		Map<Long, SolicitudCompraItem> itemsMap = solicitud.getItems().stream()
+		Map<UUID, SolicitudCompraItem> itemsMap = solicitud.getItems().stream()
 			.collect(Collectors.toMap(SolicitudCompraItem::getId, item -> item));
 
-		Map<Long, BigDecimal> updates = new HashMap<>();
+		Map<UUID, BigDecimal> updates = new HashMap<>();
 		for (SolicitudCompraRecepcionItemRequest itemRequest : request.items()) {
 			if (itemRequest == null || itemRequest.itemId() == null) continue;
 			SolicitudCompraItem item = itemsMap.get(itemRequest.itemId());
@@ -149,7 +149,7 @@ public class SolicitudCompraService {
 			BigDecimal newReceived = updates.get(item.getId());
 			BigDecimal delta = newReceived.subtract(oldReceived);
 			if (delta.compareTo(BigDecimal.ZERO) != 0) {
-				applyStockDelta(item.getProducto(), delta);
+				applyStockDelta(solicitud, item.getProducto(), delta);
 			}
 			item.setCantidadRecibida(newReceived);
 		}
@@ -171,20 +171,10 @@ public class SolicitudCompraService {
 		return toDto(saved);
 	}
 
-	private void applyStockDelta(Producto producto, BigDecimal delta) {
+	private void applyStockDelta(SolicitudCompra solicitud, Producto producto, BigDecimal delta) {
 		if (producto == null) return;
-		Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
-		if (stock == null) {
-			stock = new Stock();
-			stock.setProducto(producto);
-			stock.setCantidadActual(BigDecimal.ZERO);
-			stock.setStockMinimo(BigDecimal.ZERO);
-		}
-		BigDecimal actual = defaultZero(stock.getCantidadActual());
-		BigDecimal nuevo = actual.add(delta);
-		stock.setCantidadActual(scaleQty(nuevo));
-		stock.setUltimoMovimiento(LocalDateTime.now());
-		stockRepository.save(stock);
+		String motivo = "Recepcion de compra a " + solicitud.getProveedor().getNombre();
+		stockService.registrar(producto, TipoMovimientoStock.COMPRA, delta, motivo, null, solicitud);
 	}
 
 	private SolicitudCompraDto toDto(SolicitudCompra solicitud) {

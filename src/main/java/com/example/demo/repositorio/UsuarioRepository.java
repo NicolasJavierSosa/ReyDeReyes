@@ -1,10 +1,12 @@
 package com.example.demo.repositorio;
 
-import com.example.demo.modelo.Usuario;
 import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-	Optional<Usuario> findByUsername(String username);
-	boolean existsByUsername(String username);
+import com.example.demo.modelo.Usuario;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
+	Optional<Usuario> findByUsernameIgnoreCase(String username);
 }

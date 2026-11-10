@@ -23,9 +23,9 @@ public class ProveedorService {
 	public List<ProveedorDto> listar(String status) {
 		List<Proveedor> proveedores;
 		if ("active".equalsIgnoreCase(status)) {
-			proveedores = proveedorRepository.findByActivoTrueOrderByNombreAsc();
+			proveedores = proveedorRepository.findByActivoOrderByNombreAsc(true);
 		} else if ("inactive".equalsIgnoreCase(status)) {
-			proveedores = proveedorRepository.findByActivoFalseOrderByNombreAsc();
+			proveedores = proveedorRepository.findByActivoOrderByNombreAsc(false);
 		} else {
 			proveedores = proveedorRepository.findAllByOrderByNombreAsc();
 		}

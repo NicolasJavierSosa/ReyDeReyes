@@ -4,8 +4,10 @@ import com.example.demo.dto.CategoriaRequest;
 import com.example.demo.modelo.Categoria;
 import com.example.demo.repositorio.CategoriaRepository;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -34,6 +36,7 @@ public class CategoriaService {
 		throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filtro invalido");
 	}
 
+	@Transactional
 	public Categoria crear(CategoriaRequest request) {
 		String nombre = normalizeNombre(request.nombre());
 		if (categoriaRepository.existsByNombreIgnoreCase(nombre)) {
@@ -47,7 +50,8 @@ public class CategoriaService {
 		return categoriaRepository.save(categoria);
 	}
 
-	public Categoria actualizar(Long id, CategoriaRequest request) {
+	@Transactional
+	public Categoria actualizar(UUID id, CategoriaRequest request) {
 		Categoria categoria = categoriaRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria no encontrada"));
 
@@ -61,14 +65,16 @@ public class CategoriaService {
 		return categoriaRepository.save(categoria);
 	}
 
-	public void eliminar(Long id) {
+	@Transactional
+	public void eliminar(UUID id) {
 		Categoria categoria = categoriaRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria no encontrada"));
 		categoria.setActiva(false);
 		categoriaRepository.save(categoria);
 	}
 
-	public void cambiarEstado(Long id, boolean activa) {
+	@Transactional
+	public void cambiarEstado(UUID id, boolean activa) {
 		Categoria categoria = categoriaRepository.findById(id)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria no encontrada"));
 		categoria.setActiva(activa);

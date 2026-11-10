@@ -1,5 +1,6 @@
 package com.example.demo.controlador;
 
+import java.util.UUID;
 import com.example.demo.dto.AperturaCajaRequest;
 import com.example.demo.dto.AperturaCajaResponse;
 import com.example.demo.dto.CajasCerradasResponse;
@@ -9,7 +10,10 @@ import com.example.demo.dto.EstadoCajaDto;
 import com.example.demo.dto.MovimientoManualRequest;
 import com.example.demo.dto.MovimientoTesoreriaDto;
 import com.example.demo.dto.TesoreriaResumenDto;
+import com.example.demo.dto.SyncResultadoDto;
+import com.example.demo.respaldo.RespaldoService;
 import com.example.demo.servicio.TesoreriaService;
+import com.example.demo.sync.SyncService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
@@ -31,9 +35,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class TesoreriaApiController {
 
 	private final TesoreriaService tesoreriaService;
+	private final SyncService syncService;
+	private final RespaldoService respaldoService;
 
-	public TesoreriaApiController(TesoreriaService tesoreriaService) {
+	public TesoreriaApiController(TesoreriaService tesoreriaService, SyncService syncService, RespaldoService respaldoService) {
 		this.tesoreriaService = tesoreriaService;
+		this.syncService = syncService;
+		this.respaldoService = respaldoService;
 	}
 
 	@GetMapping("/movimientos")
@@ -43,7 +51,7 @@ public class TesoreriaApiController {
 
 	@GetMapping("/cajas/{id}/movimientos")
 	public List<MovimientoTesoreriaDto> listarMovimientosPorCaja(
-		@PathVariable Long id,
+		@PathVariable UUID id,
 		@RequestParam(required = false) String type,
 		@RequestParam(required = false) String status,
 		@RequestParam(required = false) String search
@@ -62,21 +70,35 @@ public class TesoreriaApiController {
 		return tesoreriaService.registrarMovimientoManual(request);
 	}
 
+	/** Compatibilidad con la pantalla actual: "eliminar" en realidad anula (queda registro). */
 	@DeleteMapping("/movimientos/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void eliminarManual(@PathVariable Long id) {
+	public void eliminarManual(@PathVariable UUID id) {
 		tesoreriaService.anularMovimientoManual(id);
 	}
 
 	@PatchMapping("/movimientos/{id}/anular")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void anularManual(@PathVariable Long id) {
+	public void anularManual(@PathVariable UUID id) {
 		tesoreriaService.anularMovimientoManual(id);
 	}
 
 	@PostMapping("/caja/cierre")
 	public CierreCajaResponse cerrarCaja(@Valid @RequestBody CierreCajaRequest request) {
-		return tesoreriaService.cerrarCaja(request);
+		CierreCajaResponse cierre = tesoreriaService.cerrarCaja(request);
+		// Al cerrar la caja: copia diaria local + sincronizacion obligatoria con la nube.
+		// Si no hay internet la caja queda cerrada igual y el indicador muestra lo pendiente.
+		respaldoService.copiaLocal();
+		SyncResultadoDto sync = syncService.sincronizar();
+		boolean subido = sync.ok() && syncService.pendientes() == 0;
+		return new CierreCajaResponse(
+			cierre.expectedCash(),
+			cierre.countedCash(),
+			cierre.difference(),
+			cierre.closedAt(),
+			subido,
+			subido ? "Datos subidos a la nube" : sync.message()
+		);
 	}
 
 	@GetMapping("/caja/estado")

@@ -1,6 +1,9 @@
 package com.example.demo.controlador;
 
+import java.util.UUID;
+import com.example.demo.dto.AjusteStockRequest;
 import com.example.demo.dto.ComboRequest;
+import com.example.demo.dto.MovimientoStockDto;
 import com.example.demo.dto.ProductoDto;
 import com.example.demo.dto.ProductoEstadoRequest;
 import com.example.demo.dto.ProductoRequest;
@@ -48,18 +51,28 @@ public class ProductoController {
 	}
 
 	@PutMapping("/{id}")
-	public ProductoDto actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequest request) {
+	public ProductoDto actualizar(@PathVariable UUID id, @Valid @RequestBody ProductoRequest request) {
 		return productoService.actualizar(id, request);
 	}
 
 	@PutMapping("/combos/{id}")
-	public ProductoDto actualizarCombo(@PathVariable Long id, @Valid @RequestBody ComboRequest request) {
+	public ProductoDto actualizarCombo(@PathVariable UUID id, @Valid @RequestBody ComboRequest request) {
 		return productoService.actualizarCombo(id, request);
 	}
 
 	@PatchMapping("/{id}/estado")
-	public ProductoDto cambiarEstado(@PathVariable Long id, @Valid @RequestBody ProductoEstadoRequest request) {
+	public ProductoDto cambiarEstado(@PathVariable UUID id, @Valid @RequestBody ProductoEstadoRequest request) {
 		return productoService.cambiarEstado(id, request.active());
+	}
+
+	@PostMapping("/{id}/ajuste-stock")
+	public ProductoDto ajustarStock(@PathVariable UUID id, @Valid @RequestBody AjusteStockRequest request) {
+		return productoService.ajustarStock(id, request);
+	}
+
+	@GetMapping("/{id}/movimientos")
+	public List<MovimientoStockDto> movimientos(@PathVariable UUID id) {
+		return productoService.movimientos(id);
 	}
 
 	@GetMapping("/venta/codigo/{barcode}")
@@ -70,7 +83,7 @@ public class ProductoController {
 	@GetMapping("/venta/buscar")
 	public List<ProductoVentaDto> buscarParaVenta(
 		@RequestParam("q") String query,
-		@RequestParam(value = "categoriaId", required = false) Long categoriaId
+		@RequestParam(value = "categoriaId", required = false) UUID categoriaId
 	) {
 		return productoService.buscarParaVentaPorNombre(query, categoriaId);
 	}

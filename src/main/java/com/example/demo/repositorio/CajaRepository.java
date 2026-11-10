@@ -1,34 +1,33 @@
 package com.example.demo.repositorio;
 
-import com.example.demo.enums.EstadoCaja;
-import com.example.demo.modelo.Caja;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-public interface CajaRepository extends JpaRepository<Caja, Long> {
-	Optional<Caja> findFirstByEstadoOrderByFechaAperturaDesc(EstadoCaja estado);
+import com.example.demo.enums.EstadoCaja;
+import com.example.demo.modelo.Caja;
 
-	Page<Caja> findByEstadoOrderByFechaCierreDesc(EstadoCaja estado, Pageable pageable);
+public interface CajaRepository extends JpaRepository<Caja, UUID> {
 
-	Page<Caja> findByEstadoAndFechaCierreGreaterThanEqualOrderByFechaCierreDesc(
-		EstadoCaja estado,
-		LocalDateTime from,
-		Pageable pageable
-	);
+	Optional<Caja> findFirstByEstado(EstadoCaja estado);
 
-	Page<Caja> findByEstadoAndFechaCierreLessThanOrderByFechaCierreDesc(
-		EstadoCaja estado,
-		LocalDateTime toExclusive,
-		Pageable pageable
-	);
-
-	Page<Caja> findByEstadoAndFechaCierreBetweenOrderByFechaCierreDesc(
-		EstadoCaja estado,
-		LocalDateTime from,
-		LocalDateTime toExclusive,
+	@Query("""
+		select c from Caja c
+		where c.estado = :estado
+		  and (cast(:desde as timestamp) is null or c.fechaCierre >= :desde)
+		  and (cast(:hasta as timestamp) is null or c.fechaCierre < :hasta)
+		order by c.fechaCierre desc
+		""")
+	Page<Caja> buscarCerradas(
+		@Param("estado") EstadoCaja estado,
+		@Param("desde") LocalDateTime desde,
+		@Param("hasta") LocalDateTime hasta,
 		Pageable pageable
 	);
 }

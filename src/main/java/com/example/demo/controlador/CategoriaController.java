@@ -1,5 +1,6 @@
 package com.example.demo.controlador;
 
+import java.util.UUID;
 import com.example.demo.dto.CategoriaDto;
 import com.example.demo.dto.CategoriaEstadoRequest;
 import com.example.demo.dto.CategoriaRequest;
@@ -44,19 +45,19 @@ public class CategoriaController {
 	}
 
 	@PutMapping("/{id}")
-	public CategoriaDto actualizar(@PathVariable Long id, @Valid @RequestBody CategoriaRequest request) {
+	public CategoriaDto actualizar(@PathVariable UUID id, @Valid @RequestBody CategoriaRequest request) {
 		return toDto(categoriaService.actualizar(id, request));
 	}
 
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void eliminar(@PathVariable Long id) {
+	public void eliminar(@PathVariable UUID id) {
 		categoriaService.eliminar(id);
 	}
 
 	@PatchMapping("/{id}/estado")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void cambiarEstado(@PathVariable Long id, @Valid @RequestBody CategoriaEstadoRequest request) {
+	public void cambiarEstado(@PathVariable UUID id, @Valid @RequestBody CategoriaEstadoRequest request) {
 		categoriaService.cambiarEstado(id, request.activa());
 	}
 

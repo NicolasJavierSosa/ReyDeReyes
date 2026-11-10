@@ -3,10 +3,7 @@ package com.example.demo.modelo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,25 +11,19 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "telefono")
+@EqualsAndHashCode(of = "telefono", callSuper = false)
 @Entity
-@Table(
-	name = "proveedores",
-	indexes = {
-		@Index(name = "idx_proveedor_nombre", columnList = "nombre")
-	}
-)
-public class Proveedor {
+@Table(name = "proveedores")
+public class Proveedor extends EntidadSincronizada {
 
+	/** Clave: numero de WhatsApp. */
 	@Id
 	@Column(length = 40)
-	private String telefono; // PK: número de WhatsApp
+	private String telefono;
 
 	@Column(nullable = false, length = 120)
-	private String nombre; // Empresa/Distribuidor
+	private String nombre;
 
 	@Column(nullable = false)
 	private Boolean activo;

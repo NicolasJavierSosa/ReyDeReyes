@@ -1,6 +1,11 @@
 package com.example.demo.modelo;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import com.example.demo.enums.TipoMovimientoStock;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,38 +13,26 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Cada entrada o salida de stock. La cantidad actual es la suma de estos movimientos. */
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Entity
-@Table(
-	name = "movimientos_stock",
-	indexes = {
-		@Index(name = "idx_mov_stock_producto", columnList = "producto_id"),
-		@Index(name = "idx_mov_stock_fecha_hora", columnList = "fecha_hora")
-	}
-)
-public class MovimientoStock {
+@Table(name = "movimientos_stock")
+public class MovimientoStock extends EntidadSincronizada {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
 	@ManyToOne(optional = false)
 	@JoinColumn(name = "producto_id", nullable = false)
@@ -49,6 +42,7 @@ public class MovimientoStock {
 	@Column(nullable = false, length = 20)
 	private TipoMovimientoStock tipo;
 
+	/** Positiva = entra stock, negativa = sale stock. */
 	@Column(nullable = false, precision = 14, scale = 3)
 	private BigDecimal cantidad;
 
@@ -63,6 +57,6 @@ public class MovimientoStock {
 	private Venta venta;
 
 	@ManyToOne
-	@JoinColumn(name = "usuario_id")
-	private Usuario usuario;
+	@JoinColumn(name = "solicitud_compra_id")
+	private SolicitudCompra solicitudCompra;
 }

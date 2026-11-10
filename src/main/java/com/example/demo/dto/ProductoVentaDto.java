@@ -1,12 +1,14 @@
 package com.example.demo.dto;
 
+import java.util.UUID;
+
 import java.math.BigDecimal;
 
 public record ProductoVentaDto(
-	Long id,
+	UUID id,
 	String barcode,
 	String name,
 	BigDecimal price,
-	Long categoryId,
+	UUID categoryId,
 	String categoryName
 ) {}

@@ -1,0 +1,5 @@
+{
+  "buildCommand": "npm run build:nube",
+  "outputDirectory": "dist-nube",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

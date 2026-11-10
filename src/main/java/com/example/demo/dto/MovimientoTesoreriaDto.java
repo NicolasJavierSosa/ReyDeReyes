@@ -1,20 +1,21 @@
 package com.example.demo.dto;
 
-import com.example.demo.enums.MetodoPago;
+import java.util.UUID;
+
 import com.example.demo.enums.TipoMovimientoTesoreria;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record MovimientoTesoreriaDto(
-	Long id,
+	UUID id,
 	LocalDateTime dateTime,
 	TipoMovimientoTesoreria type,
 	String concept,
 	String detail,
 	String user,
 	BigDecimal amount,
-	MetodoPago paymentMethod,
-	Long saleId,
+	String paymentMethod,
+	UUID saleId,
 	boolean affectsCash,
 	boolean deletable,
 	boolean voided

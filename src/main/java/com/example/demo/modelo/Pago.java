@@ -1,21 +1,17 @@
 package com.example.demo.modelo;
 
-import com.example.demo.enums.MetodoPago;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,31 +19,27 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Entity
-@Table(
-	name = "pagos",
-	indexes = {
-		@Index(name = "idx_pago_venta", columnList = "venta_id"),
-		@Index(name = "idx_pago_metodo", columnList = "metodo")
-	}
-)
-public class Pago {
+@Table(name = "pagos")
+public class Pago extends EntidadSincronizada {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@GeneratedValue(strategy = GenerationType.UUID)
+	private UUID id;
 
 	@ManyToOne(optional = false)
 	@JoinColumn(name = "venta_id", nullable = false)
 	private Venta venta;
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 20)
-	private MetodoPago metodo;
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "metodo_pago_id", nullable = false)
+	private MetodoPago metodoPago;
+
+	/** Nombre del metodo al momento del cobro, por si despues se renombra. */
+	@Column(name = "metodo_nombre", nullable = false, length = 80)
+	private String metodoNombre;
 
 	@Column(nullable = false, precision = 14, scale = 2)
 	private BigDecimal monto;
@@ -57,9 +49,6 @@ public class Pago {
 
 	@Column(precision = 14, scale = 2)
 	private BigDecimal cambio;
-
-	@Column(length = 120)
-	private String referencia;
 
 	@Column(name = "fecha_hora", nullable = false)
 	private LocalDateTime fechaHora;

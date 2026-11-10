@@ -2,40 +2,26 @@ package com.example.demo.modelo;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/** Tipo de producto. La clave es el nombre en minusculas (igual en local y nube). */
 @Getter
 @Setter
-@Builder
 @NoArgsConstructor
-@AllArgsConstructor
-@EqualsAndHashCode(of = "id")
+@EqualsAndHashCode(of = "id", callSuper = false)
 @Entity
-@Table(
-	name = "tipos",
-	indexes = {
-		@Index(name = "idx_tipo_nombre", columnList = "nombre")
-	}
-)
-public class Tipo {
+@Table(name = "tipos")
+public class Tipo extends EntidadSincronizada {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	@Column(length = 120)
+	private String id;
 
 	@Column(nullable = false, length = 120)
 	private String nombre;
-
-	@Column(length = 500)
-	private String descripcion;
 }

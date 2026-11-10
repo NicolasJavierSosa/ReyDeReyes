@@ -1,0 +1,4 @@
+node_modules/
+dist-nube/
+.env.nube
+.env.local

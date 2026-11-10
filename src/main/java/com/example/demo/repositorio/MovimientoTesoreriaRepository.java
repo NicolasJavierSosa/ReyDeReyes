@@ -1,11 +1,13 @@
 package com.example.demo.repositorio;
 
-import com.example.demo.modelo.MovimientoTesoreria;
 import java.util.List;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface MovimientoTesoreriaRepository extends JpaRepository<MovimientoTesoreria, Long> {
-	List<MovimientoTesoreria> findAllByOrderByFechaHoraDescIdDesc();
-	List<MovimientoTesoreria> findAllByVentaId(Long ventaId);
-	List<MovimientoTesoreria> findAllByCajaIdOrderByFechaHoraDescIdDesc(Long cajaId);
+import com.example.demo.modelo.MovimientoTesoreria;
+
+public interface MovimientoTesoreriaRepository extends JpaRepository<MovimientoTesoreria, UUID> {
+	List<MovimientoTesoreria> findAllByVentaId(UUID ventaId);
+	List<MovimientoTesoreria> findAllByCajaIdOrderByFechaHoraDescIdDesc(UUID cajaId);
 }

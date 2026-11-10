@@ -1,0 +1,33 @@
+<!--
+  Configuracion del servicio de Windows (WinSW v2). El instalador descarga WinSW
+  como servicio\ReyDeReyes.exe; ese .exe lee este archivo por tener el mismo nombre.
+  Los datos de conexion NO van aca: los lee Servicio.bat desde config-local.bat.
+-->
+<service>
+  <id>ReyDeReyes</id>
+  <name>Rey de Reyes - Sistema</name>
+  <description>Sistema de ventas de Despensa Rey de Reyes (http://localhost:8080)</description>
+
+  <executable>%ComSpec%</executable>
+  <arguments>/c "%BASE%\Servicio.bat"</arguments>
+  <workingdirectory>%BASE%\..</workingdirectory>
+
+  <!-- Arranca con Windows, despues de PostgreSQL -->
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+
+  <!-- Si se cae, se reinicia solo -->
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <resetfailure>1 hour</resetfailure>
+
+  <!-- Le da tiempo a cerrar ordenadamente -->
+  <stoptimeout>30 sec</stoptimeout>
+
+  <logpath>%BASE%\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+</service>

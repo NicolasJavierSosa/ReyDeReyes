@@ -1,5 +1,6 @@
 package com.example.demo.controlador;
 
+import java.util.UUID;
 import com.example.demo.dto.SolicitudCompraDto;
 import com.example.demo.dto.SolicitudCompraRecepcionRequest;
 import com.example.demo.dto.SolicitudCompraRequest;
@@ -39,7 +40,7 @@ public class SolicitudCompraApiController {
 	}
 
 	@PutMapping("/{id}/recepcion")
-	public SolicitudCompraDto recepcionar(@PathVariable Long id, @Valid @RequestBody SolicitudCompraRecepcionRequest request) {
+	public SolicitudCompraDto recepcionar(@PathVariable UUID id, @Valid @RequestBody SolicitudCompraRecepcionRequest request) {
 		return solicitudCompraService.recepcionar(id, request);
 	}
 }

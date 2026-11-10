@@ -1,42 +1,50 @@
 package com.example.demo.servicio;
 
-import com.example.demo.dto.ComboRequest;
-import com.example.demo.dto.ProductoDto;
-import com.example.demo.dto.ProductoRequest;
-import com.example.demo.dto.ProductoVentaDto;
-import com.example.demo.modelo.Categoria;
-import com.example.demo.modelo.Producto;
-import com.example.demo.modelo.Proveedor;
-import com.example.demo.modelo.Stock;
-import com.example.demo.modelo.Tipo;
-import com.example.demo.modelo.UnidadMedida;
-import com.example.demo.repositorio.CategoriaRepository;
-import com.example.demo.repositorio.ProductoRepository;
-import com.example.demo.repositorio.ProveedorRepository;
-import com.example.demo.repositorio.StockRepository;
-import com.example.demo.repositorio.TipoRepository;
-import com.example.demo.repositorio.UnidadMedidaRepository;
+import static com.example.demo.util.Valores.cero;
+import static com.example.demo.util.Valores.conflicto;
+import static com.example.demo.util.Valores.error;
+import static com.example.demo.util.Valores.noEncontrado;
+import static com.example.demo.util.Valores.requerido;
+import static com.example.demo.util.Valores.texto;
+
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import java.math.RoundingMode;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
+
+import com.example.demo.dto.AjusteStockRequest;
+import com.example.demo.dto.ComboRequest;
+import com.example.demo.dto.MovimientoStockDto;
+import com.example.demo.dto.ProductoDto;
+import com.example.demo.dto.ProductoRequest;
+import com.example.demo.dto.ProductoVentaDto;
+import com.example.demo.enums.TipoMovimientoStock;
+import com.example.demo.modelo.Categoria;
+import com.example.demo.modelo.ComboItem;
+import com.example.demo.modelo.Producto;
+import com.example.demo.modelo.Proveedor;
+import com.example.demo.modelo.Tipo;
+import com.example.demo.modelo.UnidadMedida;
+import com.example.demo.repositorio.CategoriaRepository;
+import com.example.demo.repositorio.ProductoRepository;
+import com.example.demo.repositorio.ProveedorRepository;
+import com.example.demo.repositorio.TipoRepository;
+import com.example.demo.repositorio.UnidadMedidaRepository;
+import com.example.demo.util.Valores;
 
 @Service
 public class ProductoService {
 
-	private static final LocalDate DEFAULT_FECHA_VENCIMIENTO = LocalDate.of(2099, 12, 31);
 	private static final Map<String, String> UNIT_DISPLAY_NAMES = Map.of(
 		"UN", "Unidad",
 		"KG", "Kilogramo",
@@ -50,7 +58,7 @@ public class ProductoService {
 	private final UnidadMedidaRepository unidadMedidaRepository;
 	private final TipoRepository tipoRepository;
 	private final ProveedorRepository proveedorRepository;
-	private final StockRepository stockRepository;
+	private final StockService stockService;
 
 	public ProductoService(
 		ProductoRepository productoRepository,
@@ -58,299 +66,306 @@ public class ProductoService {
 		UnidadMedidaRepository unidadMedidaRepository,
 		TipoRepository tipoRepository,
 		ProveedorRepository proveedorRepository,
-		StockRepository stockRepository
+		StockService stockService
 	) {
 		this.productoRepository = productoRepository;
 		this.categoriaRepository = categoriaRepository;
 		this.unidadMedidaRepository = unidadMedidaRepository;
 		this.tipoRepository = tipoRepository;
 		this.proveedorRepository = proveedorRepository;
-		this.stockRepository = stockRepository;
+		this.stockService = stockService;
 	}
+
+	// ------------------------------------------------------------------ consultas
 
 	@Transactional(readOnly = true)
 	public List<ProductoDto> listar() {
-		return productoRepository.findAllByOrderByNombreAsc().stream()
-			.map(this::toDto)
+		List<Producto> productos = productoRepository.findAllByOrderByNombreAsc();
+		// Una sola consulta de stock para todos los productos
+		Map<UUID, BigDecimal> stock = stockService.stockDeTodos();
+		Map<UUID, List<Producto>> porCategoria = productos.stream()
+			.filter(p -> !p.isCombo() && Boolean.TRUE.equals(p.getActivo()) && p.getCategoria() != null)
+			.collect(Collectors.groupingBy(p -> p.getCategoria().getId()));
+		Map<UUID, Producto> porId = productos.stream().collect(Collectors.toMap(Producto::getId, p -> p));
+		return productos.stream()
+			.map(p -> toDto(p, stock, porCategoria, porId))
 			.toList();
-	}
-
-	@Transactional
-	public ProductoDto crear(ProductoRequest request) {
-		String barcode = normalizeBarcode(request.barcode());
-		if (productoRepository.existsByCodigoBarra(barcode)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Codigo de barra existente");
-		}
-
-		Producto producto = new Producto();
-		applyRequest(producto, request, true);
-		producto.setCombo(false);
-
-		Producto saved = productoRepository.save(producto);
-		upsertStock(saved, defaultZero(request.stock()), defaultZero(request.minStock()));
-		return toDto(saved);
-	}
-
-	@Transactional
-	public ProductoDto actualizar(Long id, ProductoRequest request) {
-		Producto producto = productoRepository.findById(id)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
-
-		String barcode = normalizeBarcode(request.barcode());
-		if (productoRepository.existsByCodigoBarraAndIdNot(barcode, id)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Codigo de barra existente");
-		}
-
-		applyRequest(producto, request, false);
-
-		Producto saved = productoRepository.save(producto);
-		upsertStock(saved, defaultZero(request.stock()), defaultZero(request.minStock()));
-		return toDto(saved);
-	}
-
-	@Transactional
-	public ProductoDto crearCombo(ComboRequest request) {
-		String barcode = resolveComboBarcodeForCreate(request.barcode());
-		if (productoRepository.existsByCodigoBarra(barcode)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Codigo de barra existente");
-		}
-
-		List<Producto> items = resolveComboItemsForRequest(request, null);
-
-		Producto producto = new Producto();
-		applyComboRequest(producto, request, true, barcode);
-		producto.setCombo(true);
-		assignComboItems(producto, items);
-
-		Producto saved = productoRepository.save(producto);
-		upsertStock(saved, BigDecimal.ZERO, BigDecimal.ZERO);
-		return toDto(saved);
-	}
-
-	@Transactional
-	public ProductoDto actualizarCombo(Long id, ComboRequest request) {
-		Producto producto = productoRepository.findById(id)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
-
-		if (!producto.isCombo()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El producto no es un combo");
-		}
-
-		String barcode = resolveComboBarcodeForUpdate(request.barcode(), producto.getCodigoBarra());
-		if (productoRepository.existsByCodigoBarraAndIdNot(barcode, id)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Codigo de barra existente");
-		}
-
-		List<Producto> items = resolveComboItemsForRequest(request, id);
-
-		applyComboRequest(producto, request, false, barcode);
-		producto.setCombo(true);
-		assignComboItems(producto, items);
-
-		Producto saved = productoRepository.save(producto);
-		upsertStock(saved, BigDecimal.ZERO, BigDecimal.ZERO);
-		return toDto(saved);
-	}
-
-	@Transactional
-	public ProductoDto cambiarEstado(Long id, boolean active) {
-		Producto producto = productoRepository.findById(id)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
-		producto.setActivo(active);
-		Producto saved = productoRepository.save(producto);
-		return toDto(saved);
 	}
 
 	@Transactional(readOnly = true)
 	public ProductoVentaDto obtenerParaVentaPorCodigo(String barcode) {
 		String normalized = normalizeBarcode(barcode);
 		Producto producto = productoRepository.findByCodigoBarraAndActivoTrue(normalized)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
-		if (producto.isCombo() && !isComboEnabled(producto)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado");
+			.orElseThrow(() -> noEncontrado("Producto no encontrado"));
+		if (producto.isCombo() && !comboDisponible(producto)) {
+			throw noEncontrado("Producto no encontrado");
 		}
 		return toVentaDto(producto);
 	}
 
 	@Transactional(readOnly = true)
-	public List<ProductoVentaDto> buscarParaVentaPorNombre(String query, Long categoriaId) {
-		String normalized = normalizeText(query);
+	public List<ProductoVentaDto> buscarParaVentaPorNombre(String query, UUID categoriaId) {
+		String normalized = texto(query);
 		if (normalized.isEmpty()) {
 			return List.of();
 		}
-
 		return productoRepository.findTop20ByActivoTrueAndNombreContainingIgnoreCaseOrderByNombreAsc(normalized).stream()
 			.filter(producto -> categoriaId == null
 				|| (producto.getCategoria() != null && categoriaId.equals(producto.getCategoria().getId())))
-			.filter(producto -> !producto.isCombo() || isComboEnabled(producto))
+			.filter(producto -> !producto.isCombo() || comboDisponible(producto))
 			.map(this::toVentaDto)
 			.toList();
 	}
 
-	private void applyRequest(Producto producto, ProductoRequest request, boolean creating) {
-		applyCommonFields(
-			producto,
-			request.barcode(),
-			request.name(),
-			request.description(),
-			request.categoryId(),
-			request.supplierId(),
-			request.unit(),
-			request.type(),
-			request.cost(),
-			request.price(),
-			request.active(),
-			creating
-		);
+	@Transactional(readOnly = true)
+	public List<MovimientoStockDto> movimientos(UUID productoId) {
+		return stockService.movimientosDe(productoId).stream()
+			.map(m -> new MovimientoStockDto(
+				m.getId(),
+				m.getFechaHora(),
+				m.getTipo(),
+				m.getCantidad(),
+				m.getMotivo(),
+				m.getVenta() != null ? m.getVenta().getNumero() : null
+			))
+			.toList();
 	}
 
-	private void applyComboRequest(Producto producto, ComboRequest request, boolean creating, String barcode) {
-		applyCommonFields(
-			producto,
-			barcode,
-			request.name(),
-			request.description(),
-			request.categoryId(),
-			null,
-			request.unit(),
-			request.type(),
-			request.cost(),
-			request.price(),
-			request.active(),
-			creating
-		);
-		applyComboGroupFields(producto, request);
-	}
+	// ------------------------------------------------------------------ productos
 
-	private void applyCommonFields(
-		Producto producto,
-		String barcode,
-		String name,
-		String description,
-		Long categoryId,
-		String supplierId,
-		String unit,
-		String type,
-		BigDecimal cost,
-		BigDecimal price,
-		Boolean active,
-		boolean creating
-	) {
-		producto.setCodigoBarra(normalizeBarcode(barcode));
-		producto.setNombre(normalizeRequired(name, "Nombre requerido"));
-		producto.setDescripcion(normalizeText(description));
-		producto.setPrecioCosto(defaultZero(cost));
-		producto.setPrecioVenta(defaultZero(price));
-		producto.setCategoria(resolveCategoria(categoryId));
-		producto.setProveedor(resolveProveedor(supplierId));
-		producto.setUnidadMedida(resolveUnidad(unit));
-		producto.setTipo(resolveTipo(type));
-
-		if (creating) {
-			producto.setActivo(active == null ? true : active);
-		} else if (active != null) {
-			producto.setActivo(active);
+	@Transactional
+	public ProductoDto crear(ProductoRequest request) {
+		String barcode = normalizeBarcode(request.barcode());
+		if (productoRepository.existsByCodigoBarra(barcode)) {
+			throw conflicto("Codigo de barra existente");
 		}
-
-		if (producto.getFechaVencimiento() == null) {
-			producto.setFechaVencimiento(DEFAULT_FECHA_VENCIMIENTO);
+		Producto producto = new Producto();
+		applyCommonFields(producto, barcode, request.name(), request.description(), request.categoryId(),
+			request.supplierId(), request.unit(), request.type(), request.cost(), request.price(),
+			request.active(), true);
+		producto.setStockMinimo(Valores.cantidad(request.minStock()));
+		producto.setCombo(false);
+		producto.setComboItems(new ArrayList<>());
+		Producto saved = productoRepository.save(producto);
+		BigDecimal inicial = cero(request.stock());
+		if (inicial.signum() > 0) {
+			stockService.registrar(saved, TipoMovimientoStock.INICIAL, inicial, "Stock inicial", null, null);
 		}
+		return dtoDe(saved);
 	}
 
-	private Categoria resolveCategoria(Long categoryId) {
-		if (categoryId == null) {
-			return null;
-		}
-		Categoria categoria = categoriaRepository.findById(categoryId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria invalida"));
-		if (!Boolean.TRUE.equals(categoria.getActiva())) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria inactiva");
-		}
-		return categoria;
-	}
-
-	private Proveedor resolveProveedor(String supplierId) {
-		if (supplierId == null) {
-			return null;
-		}
-		Proveedor proveedor = proveedorRepository.findById(supplierId)
-			.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Proveedor invalido"));
-		if (!Boolean.TRUE.equals(proveedor.getActivo())) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Proveedor inactivo");
-		}
-		return proveedor;
-	}
-
-	private UnidadMedida resolveUnidad(String raw) {
-		String abreviatura = normalizeRequired(raw, "Unidad requerida").toUpperCase(Locale.ROOT);
-
-		return unidadMedidaRepository.findByAbreviaturaIgnoreCase(abreviatura)
-			.orElseGet(() -> {
-				UnidadMedida unidad = new UnidadMedida();
-				unidad.setAbreviatura(abreviatura);
-				unidad.setNombre(UNIT_DISPLAY_NAMES.getOrDefault(abreviatura, abreviatura));
-				return unidadMedidaRepository.save(unidad);
-			});
-	}
-
-	private Tipo resolveTipo(String raw) {
-		String nombre = normalizeRequired(raw, "Tipo requerido");
-
-		return tipoRepository.findByNombreIgnoreCase(nombre)
-			.orElseGet(() -> {
-				Tipo tipo = new Tipo();
-				tipo.setNombre(nombre);
-				tipo.setDescripcion(null);
-				return tipoRepository.save(tipo);
-			});
-	}
-
-	private void upsertStock(Producto producto, BigDecimal cantidad, BigDecimal minimo) {
-		Stock stock = stockRepository.findByProductoId(producto.getId())
-			.orElseGet(() -> {
-				Stock nuevo = new Stock();
-				nuevo.setProducto(producto);
-				return nuevo;
-			});
-
-		stock.setCantidadActual(cantidad);
-		stock.setStockMinimo(minimo);
-		stock.setUltimoMovimiento(LocalDateTime.now());
-		stockRepository.save(stock);
-	}
-
-	private ProductoDto toDto(Producto producto) {
-		BigDecimal cantidadActual = BigDecimal.ZERO;
-		BigDecimal minimo = BigDecimal.ZERO;
-
+	@Transactional
+	public ProductoDto actualizar(UUID id, ProductoRequest request) {
+		Producto producto = productoRepository.findById(id)
+			.orElseThrow(() -> noEncontrado("Producto no encontrado"));
 		if (producto.isCombo()) {
-			ComboStock comboStock = computeComboStock(producto);
-			cantidadActual = comboStock.cantidad();
-			minimo = comboStock.minimo();
-		} else {
-			Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
-			cantidadActual = stock != null && stock.getCantidadActual() != null
-				? stock.getCantidadActual()
-				: BigDecimal.ZERO;
-			minimo = stock != null && stock.getStockMinimo() != null
-				? stock.getStockMinimo()
-				: BigDecimal.ZERO;
+			throw error("El producto es un combo");
 		}
+		String barcode = normalizeBarcode(request.barcode());
+		if (productoRepository.existsByCodigoBarraAndIdNot(barcode, id)) {
+			throw conflicto("Codigo de barra existente");
+		}
+		applyCommonFields(producto, barcode, request.name(), request.description(), request.categoryId(),
+			request.supplierId(), request.unit(), request.type(), request.cost(), request.price(),
+			request.active(), false);
+		producto.setStockMinimo(Valores.cantidad(request.minStock()));
+		Producto saved = productoRepository.save(producto);
 
+		// El stock ya no se pisa: si el formulario cambio la cantidad se registra un ajuste
+		// solo por la diferencia que hizo el usuario.
+		if (request.stock() != null) {
+			stockService.bloquear(List.of(id));
+			BigDecimal referencia = request.stockOriginal() != null
+				? request.stockOriginal()
+				: stockService.stockDe(id);
+			BigDecimal delta = Valores.cantidad(request.stock().subtract(referencia));
+			if (delta.signum() != 0) {
+				stockService.registrar(saved, TipoMovimientoStock.AJUSTE, delta, "Ajuste desde edicion de producto", null, null);
+			}
+		}
+		return dtoDe(saved);
+	}
+
+	@Transactional
+	public ProductoDto ajustarStock(UUID id, AjusteStockRequest request) {
+		Producto producto = productoRepository.findById(id)
+			.orElseThrow(() -> noEncontrado("Producto no encontrado"));
+		if (producto.isCombo()) {
+			throw error("Los combos no tienen stock propio");
+		}
+		stockService.bloquear(List.of(id));
+		BigDecimal actual = stockService.stockDe(id);
+		BigDecimal delta = Valores.cantidad(request.newStock().subtract(actual));
+		if (delta.signum() != 0) {
+			String motivo = texto(request.reason());
+			stockService.registrar(producto, TipoMovimientoStock.AJUSTE, delta,
+				motivo.isEmpty() ? "Ajuste manual" : motivo, null, null);
+		}
+		return dtoDe(producto);
+	}
+
+	@Transactional
+	public ProductoDto cambiarEstado(UUID id, boolean active) {
+		Producto producto = productoRepository.findById(id)
+			.orElseThrow(() -> noEncontrado("Producto no encontrado"));
+		producto.setActivo(active);
+		return dtoDe(productoRepository.save(producto));
+	}
+
+	// ------------------------------------------------------------------ combos
+
+	@Transactional
+	public ProductoDto crearCombo(ComboRequest request) {
+		String barcode = normalizeOptionalBarcode(request.barcode());
+		if (barcode.isEmpty()) {
+			barcode = generateComboBarcode();
+		}
+		if (productoRepository.existsByCodigoBarra(barcode)) {
+			throw conflicto("Codigo de barra existente");
+		}
+		Producto producto = new Producto();
+		applyCommonFields(producto, barcode, request.name(), request.description(), request.categoryId(),
+			null, request.unit(), request.type(), request.cost(), request.price(), request.active(), true);
+		producto.setStockMinimo(BigDecimal.ZERO);
+		producto.setCombo(true);
+		applyComboDefinition(producto, request, null);
+		return dtoDe(productoRepository.save(producto));
+	}
+
+	@Transactional
+	public ProductoDto actualizarCombo(UUID id, ComboRequest request) {
+		Producto producto = productoRepository.findById(id)
+			.orElseThrow(() -> noEncontrado("Producto no encontrado"));
+		if (!producto.isCombo()) {
+			throw error("El producto no es un combo");
+		}
+		String barcode = normalizeOptionalBarcode(request.barcode());
+		if (barcode.isEmpty()) {
+			barcode = producto.getCodigoBarra();
+		}
+		if (productoRepository.existsByCodigoBarraAndIdNot(barcode, id)) {
+			throw conflicto("Codigo de barra existente");
+		}
+		applyCommonFields(producto, barcode, request.name(), request.description(), request.categoryId(),
+			null, request.unit(), request.type(), request.cost(), request.price(), request.active(), false);
+		applyComboDefinition(producto, request, id);
+		return dtoDe(productoRepository.save(producto));
+	}
+
+	private void applyComboDefinition(Producto producto, ComboRequest request, UUID comboId) {
+		boolean hasGroup = request.groupCategoryId() != null || request.groupQuantity() != null;
+		boolean hasItems = request.items() != null && !request.items().isEmpty();
+		if (hasGroup && hasItems) {
+			throw error("El combo no puede mezclar grupo y productos");
+		}
+		if (!hasGroup && !hasItems) {
+			throw error("Seleccione productos o defina un grupo para el combo");
+		}
+		if (hasGroup) {
+			if (request.groupCategoryId() == null) {
+				throw error("Seleccione una categoria para el grupo");
+			}
+			if (request.groupQuantity() == null || request.groupQuantity() <= 0) {
+				throw error("Cantidad invalida para el grupo");
+			}
+			producto.setComboGrupoCategoria(resolveCategoria(request.groupCategoryId()));
+			producto.setComboGrupoCantidad(request.groupQuantity());
+			producto.setComboItems(new ArrayList<>());
+			return;
+		}
+		Set<UUID> ids = request.items().stream()
+			.filter(Objects::nonNull)
+			.collect(Collectors.toCollection(LinkedHashSet::new));
+		if (ids.isEmpty()) {
+			throw error("Seleccione al menos un producto para el combo");
+		}
+		if (comboId != null && ids.contains(comboId)) {
+			throw error("El combo no puede incluirse a si mismo");
+		}
+		List<Producto> items = productoRepository.findAllById(ids);
+		if (items.size() != ids.size()) {
+			throw error("Algunos productos del combo no existen");
+		}
+		if (items.stream().anyMatch(Producto::isCombo)) {
+			throw error("No se pueden incluir combos dentro de otro combo");
+		}
+		producto.setComboGrupoCategoria(null);
+		producto.setComboGrupoCantidad(null);
+		producto.setComboItems(ids.stream().map(itemId -> new ComboItem(itemId, BigDecimal.ONE)).collect(Collectors.toCollection(ArrayList::new)));
+	}
+
+	/** Un combo esta disponible si alcanza el stock de sus componentes para venderlo una vez. */
+	@Transactional(readOnly = true)
+	public boolean comboDisponible(Producto combo) {
+		if (combo == null || !combo.isCombo()) {
+			return true;
+		}
+		if (combo.isComboDeGrupo()) {
+			List<Producto> productos = productoRepository
+				.findByCategoriaIdAndActivoTrueAndComboFalse(combo.getComboGrupoCategoria().getId());
+			Map<UUID, BigDecimal> stock = stockService.stockDe(productos.stream().map(Producto::getId).toList());
+			BigDecimal total = stock.values().stream().filter(v -> v.signum() > 0).reduce(BigDecimal.ZERO, BigDecimal::add);
+			return total.compareTo(BigDecimal.valueOf(combo.getComboGrupoCantidad())) >= 0;
+		}
+		List<ComboItem> items = combo.getComboItems();
+		if (items == null || items.isEmpty()) {
+			return false;
+		}
+		List<UUID> ids = items.stream().map(ComboItem::productoId).toList();
+		Map<UUID, Producto> productos = productoRepository.findAllById(ids).stream()
+			.collect(Collectors.toMap(Producto::getId, p -> p));
+		Map<UUID, BigDecimal> stock = stockService.stockDe(ids);
+		for (ComboItem item : items) {
+			Producto componente = productos.get(item.productoId());
+			if (componente == null || !Boolean.TRUE.equals(componente.getActivo())) {
+				return false;
+			}
+			if (cero(stock.get(item.productoId())).compareTo(cero(item.cantidad())) < 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// ------------------------------------------------------------------ mapeo
+
+	private ProductoDto dtoDe(Producto producto) {
+		Set<UUID> ids = new LinkedHashSet<>();
+		ids.add(producto.getId());
+		Map<UUID, List<Producto>> porCategoria = Map.of();
+		if (producto.isComboDeGrupo()) {
+			List<Producto> grupo = productoRepository
+				.findByCategoriaIdAndActivoTrueAndComboFalse(producto.getComboGrupoCategoria().getId());
+			grupo.forEach(p -> ids.add(p.getId()));
+			porCategoria = Map.of(producto.getComboGrupoCategoria().getId(), grupo);
+		}
+		Map<UUID, Producto> porId = new java.util.HashMap<>();
+		if (producto.isCombo() && producto.getComboItems() != null) {
+			producto.getComboItems().forEach(i -> ids.add(i.productoId()));
+			productoRepository.findAllById(producto.getComboItems().stream().map(ComboItem::productoId).toList())
+				.forEach(p -> porId.put(p.getId(), p));
+		}
+		return toDto(producto, stockService.stockDe(ids), porCategoria, porId);
+	}
+
+	private ProductoDto toDto(
+		Producto producto,
+		Map<UUID, BigDecimal> stock,
+		Map<UUID, List<Producto>> activosPorCategoria,
+		Map<UUID, Producto> porId
+	) {
+		BigDecimal cantidad;
+		BigDecimal minimo = cero(producto.getStockMinimo());
 		boolean active = Boolean.TRUE.equals(producto.getActivo());
 		if (producto.isCombo()) {
-			active = active && isComboEnabled(producto);
+			cantidad = combosArmables(producto, stock, activosPorCategoria, porId);
+			active = active && cantidad.signum() > 0;
+		} else {
+			cantidad = cero(stock.get(producto.getId()));
 		}
-
-		Long comboGroupCategoryId = null;
-		String comboGroupCategoryName = null;
-		Integer comboGroupQuantity = null;
-		if (producto.isCombo() && producto.getComboGrupoCategoria() != null) {
-			comboGroupCategoryId = producto.getComboGrupoCategoria().getId();
-			comboGroupCategoryName = producto.getComboGrupoCategoria().getNombre();
-			comboGroupQuantity = producto.getComboGrupoCantidad();
-		}
-
+		List<UUID> comboItems = producto.isCombo() && !producto.isComboDeGrupo() && producto.getComboItems() != null
+			? producto.getComboItems().stream().map(ComboItem::productoId).toList()
+			: List.of();
 		return new ProductoDto(
 			producto.getId(),
 			producto.getCodigoBarra(),
@@ -362,17 +377,48 @@ public class ProductoService {
 			producto.getProveedor() != null ? producto.getProveedor().getNombre() : null,
 			producto.getUnidadMedida() != null ? producto.getUnidadMedida().getAbreviatura() : null,
 			producto.getTipo() != null ? producto.getTipo().getNombre() : null,
-			defaultZero(producto.getPrecioCosto()),
-			defaultZero(producto.getPrecioVenta()),
-			cantidadActual,
+			cero(producto.getPrecioCosto()),
+			cero(producto.getPrecioVenta()),
+			cantidad,
 			minimo,
 			active,
 			producto.isCombo(),
-			comboItemIds(producto),
-			comboGroupCategoryId,
-			comboGroupCategoryName,
-			comboGroupQuantity
+			comboItems,
+			producto.isComboDeGrupo() ? producto.getComboGrupoCategoria().getId() : null,
+			producto.isComboDeGrupo() ? producto.getComboGrupoCategoria().getNombre() : null,
+			producto.isComboDeGrupo() ? producto.getComboGrupoCantidad() : null
 		);
+	}
+
+	/** Cuantos combos se pueden armar con el stock actual. */
+	private BigDecimal combosArmables(
+		Producto combo,
+		Map<UUID, BigDecimal> stock,
+		Map<UUID, List<Producto>> activosPorCategoria,
+		Map<UUID, Producto> porId
+	) {
+		if (combo.isComboDeGrupo()) {
+			List<Producto> grupo = activosPorCategoria.getOrDefault(combo.getComboGrupoCategoria().getId(), List.of());
+			BigDecimal total = grupo.stream()
+				.map(p -> cero(stock.get(p.getId())))
+				.filter(v -> v.signum() > 0)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+			return total.divide(BigDecimal.valueOf(combo.getComboGrupoCantidad()), 0, RoundingMode.DOWN);
+		}
+		if (combo.getComboItems() == null || combo.getComboItems().isEmpty()) {
+			return BigDecimal.ZERO;
+		}
+		BigDecimal minimo = null;
+		for (ComboItem item : combo.getComboItems()) {
+			Producto componente = porId.get(item.productoId());
+			if (componente == null || !Boolean.TRUE.equals(componente.getActivo())) {
+				return BigDecimal.ZERO;
+			}
+			BigDecimal porUnidad = cero(item.cantidad()).signum() > 0 ? item.cantidad() : BigDecimal.ONE;
+			BigDecimal posibles = cero(stock.get(item.productoId())).divide(porUnidad, 0, RoundingMode.DOWN);
+			minimo = minimo == null ? posibles : minimo.min(posibles);
+		}
+		return minimo == null ? BigDecimal.ZERO : minimo.max(BigDecimal.ZERO);
 	}
 
 	private ProductoVentaDto toVentaDto(Producto producto) {
@@ -380,43 +426,101 @@ public class ProductoService {
 			producto.getId(),
 			producto.getCodigoBarra(),
 			producto.getNombre(),
-			defaultZero(producto.getPrecioVenta()),
+			cero(producto.getPrecioVenta()),
 			producto.getCategoria() != null ? producto.getCategoria().getId() : null,
 			producto.getCategoria() != null ? producto.getCategoria().getNombre() : null
 		);
 	}
 
+	// ------------------------------------------------------------------ auxiliares
+
+	private void applyCommonFields(
+		Producto producto,
+		String barcode,
+		String name,
+		String description,
+		UUID categoryId,
+		String supplierId,
+		String unit,
+		String type,
+		BigDecimal cost,
+		BigDecimal price,
+		Boolean active,
+		boolean creating
+	) {
+		producto.setCodigoBarra(normalizeBarcode(barcode));
+		producto.setNombre(requerido(name, "Nombre requerido"));
+		producto.setDescripcion(Valores.textoONull(description));
+		producto.setPrecioCosto(Valores.dinero(cost));
+		producto.setPrecioVenta(Valores.dinero(price));
+		producto.setCategoria(categoryId == null ? null : resolveCategoria(categoryId));
+		producto.setProveedor(resolveProveedor(supplierId));
+		producto.setUnidadMedida(resolveUnidad(unit));
+		producto.setTipo(resolveTipo(type));
+		if (creating) {
+			producto.setActivo(active == null || active);
+		} else if (active != null) {
+			producto.setActivo(active);
+		}
+	}
+
+	private Categoria resolveCategoria(UUID categoryId) {
+		Categoria categoria = categoriaRepository.findById(categoryId)
+			.orElseThrow(() -> error("Categoria invalida"));
+		if (!Boolean.TRUE.equals(categoria.getActiva())) {
+			throw error("Categoria inactiva");
+		}
+		return categoria;
+	}
+
+	private Proveedor resolveProveedor(String supplierId) {
+		String id = texto(supplierId);
+		if (id.isEmpty()) {
+			return null;
+		}
+		Proveedor proveedor = proveedorRepository.findById(id)
+			.orElseThrow(() -> error("Proveedor invalido"));
+		if (!Boolean.TRUE.equals(proveedor.getActivo())) {
+			throw error("Proveedor inactivo");
+		}
+		return proveedor;
+	}
+
+	private UnidadMedida resolveUnidad(String raw) {
+		String abreviatura = requerido(raw, "Unidad requerida").toUpperCase(Locale.ROOT);
+		return unidadMedidaRepository.findById(abreviatura)
+			.orElseGet(() -> {
+				UnidadMedida unidad = new UnidadMedida();
+				unidad.setAbreviatura(abreviatura);
+				unidad.setNombre(UNIT_DISPLAY_NAMES.getOrDefault(abreviatura, abreviatura));
+				return unidadMedidaRepository.save(unidad);
+			});
+	}
+
+	private Tipo resolveTipo(String raw) {
+		String nombre = requerido(raw, "Tipo requerido");
+		String clave = nombre.toLowerCase(Locale.ROOT);
+		return tipoRepository.findById(clave)
+			.orElseGet(() -> {
+				Tipo tipo = new Tipo();
+				tipo.setId(clave);
+				tipo.setNombre(nombre);
+				return tipoRepository.save(tipo);
+			});
+	}
+
 	private String normalizeBarcode(String barcode) {
-		String normalized = normalizeRequired(barcode, "Codigo de barra requerido");
+		String normalized = requerido(barcode, "Codigo de barra requerido");
 		if (normalized.length() > 64) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Codigo de barra demasiado largo");
-		}
-		return normalized;
-	}
-
-	private String resolveComboBarcodeForCreate(String barcode) {
-		String normalized = normalizeOptionalBarcode(barcode);
-		if (normalized.isEmpty()) {
-			return generateComboBarcode();
-		}
-		return normalized;
-	}
-
-	private String resolveComboBarcodeForUpdate(String barcode, String fallback) {
-		String normalized = normalizeOptionalBarcode(barcode);
-		if (normalized.isEmpty()) {
-			if (fallback == null || fallback.isBlank()) {
-				return generateComboBarcode();
-			}
-			return fallback;
+			throw error("Codigo de barra demasiado largo");
 		}
 		return normalized;
 	}
 
 	private String normalizeOptionalBarcode(String barcode) {
-		String normalized = normalizeText(barcode);
+		String normalized = texto(barcode);
 		if (normalized.length() > 64) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Codigo de barra demasiado largo");
+			throw error("Codigo de barra demasiado largo");
 		}
 		return normalized;
 	}
@@ -428,232 +532,6 @@ public class ProductoService {
 				return candidate;
 			}
 		}
-		throw new ResponseStatusException(HttpStatus.CONFLICT, "Codigo de barra existente");
+		throw conflicto("Codigo de barra existente");
 	}
-
-	private String normalizeRequired(String value, String message) {
-		String normalized = normalizeText(value);
-		if (normalized.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
-		}
-		return normalized;
-	}
-
-	private String normalizeText(String value) {
-		if (value == null) {
-			return "";
-		}
-		return value.trim().replaceAll("\\s+", " ");
-	}
-
-	private BigDecimal defaultZero(BigDecimal value) {
-		return value == null ? BigDecimal.ZERO : value;
-	}
-
-	private List<Long> comboItemIds(Producto producto) {
-		if (producto == null || !producto.isCombo()) {
-			return List.of();
-		}
-		if (isGroupCombo(producto)) {
-			return List.of();
-		}
-		List<Producto> items = producto.getComboProductos();
-		if (items == null || items.isEmpty()) {
-			return List.of();
-		}
-		return items.stream()
-			.filter(Objects::nonNull)
-			.map(Producto::getId)
-			.filter(Objects::nonNull)
-			.toList();
-	}
-
-	private List<Producto> resolveComboItemsForRequest(ComboRequest request, Long comboId) {
-		boolean hasGroup = request.groupCategoryId() != null || request.groupQuantity() != null;
-		boolean hasItems = request.items() != null && !request.items().isEmpty();
-		if (hasGroup && hasItems) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El combo no puede mezclar grupo y productos");
-		}
-		if (!hasGroup && !hasItems) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seleccione productos o defina un grupo para el combo");
-		}
-		if (hasGroup) {
-			validateGroupRequest(request);
-			return new ArrayList<>();
-		}
-		return resolveComboItems(request.items(), comboId);
-	}
-
-	private void assignComboItems(Producto producto, List<Producto> items) {
-		if (producto.getComboProductos() == null) {
-			producto.setComboProductos(new ArrayList<>());
-		}
-		producto.getComboProductos().clear();
-		if (items != null && !items.isEmpty()) {
-			producto.getComboProductos().addAll(items);
-		}
-	}
-
-	private List<Producto> resolveComboItems(List<Long> rawIds, Long comboId) {
-		if (rawIds == null || rawIds.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seleccione al menos un producto para el combo");
-		}
-
-		List<Long> ids = rawIds.stream()
-			.filter(Objects::nonNull)
-			.distinct()
-			.toList();
-
-		if (ids.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seleccione al menos un producto para el combo");
-		}
-
-		if (comboId != null && ids.contains(comboId)) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El combo no puede incluirse a si mismo");
-		}
-
-		List<Producto> items = productoRepository.findAllById(ids);
-		Set<Long> foundIds = items.stream()
-			.map(Producto::getId)
-			.filter(Objects::nonNull)
-			.collect(Collectors.toSet());
-
-		if (foundIds.size() != ids.size()) {
-			List<Long> missing = ids.stream()
-				.filter(id -> !foundIds.contains(id))
-				.toList();
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Productos invalidos: " + missing);
-		}
-
-		boolean hasCombo = items.stream().anyMatch(Producto::isCombo);
-		if (hasCombo) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pueden incluir combos dentro de otro combo");
-		}
-
-		return items;
-	}
-
-	private ComboStock computeComboStock(Producto combo) {
-		if (combo == null || !combo.isCombo()) {
-			return new ComboStock(BigDecimal.ZERO, BigDecimal.ZERO);
-		}
-		if (isGroupCombo(combo)) {
-			BigDecimal totalStock = sumStockByCategory(combo.getComboGrupoCategoria());
-			BigDecimal qty = BigDecimal.valueOf(combo.getComboGrupoCantidad());
-			if (qty.compareTo(BigDecimal.ZERO) <= 0) {
-				return new ComboStock(BigDecimal.ZERO, BigDecimal.ZERO);
-			}
-			BigDecimal combos = totalStock.divide(qty, 0, RoundingMode.DOWN);
-			return new ComboStock(combos, BigDecimal.ZERO);
-		}
-
-		List<Producto> items = combo.getComboProductos();
-		if (items == null || items.isEmpty()) {
-			return new ComboStock(BigDecimal.ZERO, BigDecimal.ZERO);
-		}
-
-		BigDecimal minStock = null;
-		BigDecimal minMinimo = null;
-
-		for (Producto item : items) {
-			if (item == null || item.getId() == null) {
-				continue;
-			}
-			Stock stock = stockRepository.findByProductoId(item.getId()).orElse(null);
-			BigDecimal actual = stock != null && stock.getCantidadActual() != null
-				? stock.getCantidadActual()
-				: BigDecimal.ZERO;
-			BigDecimal minimo = stock != null && stock.getStockMinimo() != null
-				? stock.getStockMinimo()
-				: BigDecimal.ZERO;
-
-			minStock = minStock == null ? actual : minStock.min(actual);
-			minMinimo = minMinimo == null ? minimo : minMinimo.min(minimo);
-		}
-
-		return new ComboStock(
-			minStock == null ? BigDecimal.ZERO : minStock,
-			minMinimo == null ? BigDecimal.ZERO : minMinimo
-		);
-	}
-
-	private boolean isComboEnabled(Producto combo) {
-		if (combo == null || !combo.isCombo()) {
-			return true;
-		}
-		if (isGroupCombo(combo)) {
-			BigDecimal totalStock = sumStockByCategory(combo.getComboGrupoCategoria());
-			int required = combo.getComboGrupoCantidad() != null ? combo.getComboGrupoCantidad() : 0;
-			return required > 0 && totalStock.compareTo(BigDecimal.valueOf(required)) >= 0;
-		}
-
-		List<Producto> items = combo.getComboProductos();
-		if (items == null || items.isEmpty()) {
-			return false;
-		}
-
-		for (Producto item : items) {
-			if (item == null || !Boolean.TRUE.equals(item.getActivo())) {
-				return false;
-			}
-			Stock stock = stockRepository.findByProductoId(item.getId()).orElse(null);
-			BigDecimal actual = stock != null && stock.getCantidadActual() != null
-				? stock.getCantidadActual()
-				: BigDecimal.ZERO;
-			if (actual.compareTo(BigDecimal.ZERO) <= 0) {
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	private void applyComboGroupFields(Producto producto, ComboRequest request) {
-		Long groupCategoryId = request.groupCategoryId();
-		Integer groupQuantity = request.groupQuantity();
-		if (groupCategoryId == null && groupQuantity == null) {
-			producto.setComboGrupoCategoria(null);
-			producto.setComboGrupoCantidad(null);
-			return;
-		}
-		validateGroupRequest(request);
-		producto.setComboGrupoCategoria(resolveCategoria(groupCategoryId));
-		producto.setComboGrupoCantidad(groupQuantity);
-	}
-
-	private void validateGroupRequest(ComboRequest request) {
-		if (request.groupCategoryId() == null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seleccione una categoria para el grupo");
-		}
-		if (request.groupQuantity() == null || request.groupQuantity() <= 0) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cantidad invalida para el grupo");
-		}
-	}
-
-	private boolean isGroupCombo(Producto combo) {
-		return combo.getComboGrupoCategoria() != null
-			&& combo.getComboGrupoCantidad() != null
-			&& combo.getComboGrupoCantidad() > 0;
-	}
-
-	private BigDecimal sumStockByCategory(Categoria categoria) {
-		if (categoria == null || categoria.getId() == null) {
-			return BigDecimal.ZERO;
-		}
-		List<Producto> productos = productoRepository.findByCategoriaIdAndActivoTrue(categoria.getId());
-		BigDecimal total = BigDecimal.ZERO;
-		for (Producto producto : productos) {
-			if (producto == null || producto.isCombo()) {
-				continue;
-			}
-			Stock stock = stockRepository.findByProductoId(producto.getId()).orElse(null);
-			BigDecimal actual = stock != null && stock.getCantidadActual() != null
-				? stock.getCantidadActual()
-				: BigDecimal.ZERO;
-			total = total.add(actual);
-		}
-		return total;
-	}
-
-	private record ComboStock(BigDecimal cantidad, BigDecimal minimo) {}
 }

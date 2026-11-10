@@ -1,15 +1,18 @@
 package com.example.demo.repositorio;
 
-import com.example.demo.enums.EstadoSolicitudCompra;
-import com.example.demo.modelo.SolicitudCompra;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface SolicitudCompraRepository extends JpaRepository<SolicitudCompra, Long> {
+import com.example.demo.enums.EstadoSolicitudCompra;
+import com.example.demo.modelo.SolicitudCompra;
+
+public interface SolicitudCompraRepository extends JpaRepository<SolicitudCompra, UUID> {
 
 	@Query("""
 		select distinct s
@@ -19,7 +22,7 @@ public interface SolicitudCompraRepository extends JpaRepository<SolicitudCompra
 		left join fetch s.proveedor prov
 		where s.id = :id
 		""")
-	Optional<SolicitudCompra> findByIdWithItems(@Param("id") Long id);
+	Optional<SolicitudCompra> findByIdWithItems(@Param("id") UUID id);
 
 	@Query("""
 		select distinct s

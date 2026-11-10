@@ -1,16 +1,15 @@
 package com.example.demo.repositorio;
 
-import com.example.demo.modelo.Cliente;
 import java.util.List;
-import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ClienteRepository extends JpaRepository<Cliente, Long> {
-	List<Cliente> findAllByOrderByNombreCompletoAsc();
-	List<Cliente> findByActivoTrueOrderByNombreCompletoAsc();
-	List<Cliente> findByActivoFalseOrderByNombreCompletoAsc();
+import com.example.demo.modelo.Cliente;
 
-	Optional<Cliente> findFirstByEmailIgnoreCase(String email);
+public interface ClienteRepository extends JpaRepository<Cliente, UUID> {
+	List<Cliente> findAllByOrderByApellidoAscNombreAsc();
+	List<Cliente> findByActivoOrderByApellidoAscNombreAsc(Boolean activo);
 	boolean existsByEmailIgnoreCase(String email);
-	boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+	boolean existsByEmailIgnoreCaseAndIdNot(String email, UUID id);
 }

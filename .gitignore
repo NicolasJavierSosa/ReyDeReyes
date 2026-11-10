@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Configuracion con claves (nunca al repositorio) ###
+config-local.bat
+
+### Vue compilado (lo genera mvnw package) ###
+src/main/resources/static/
+frontend/node_modules/
+frontend/dist-nube/
+
+### Servicio de Windows (WinSW se descarga al instalar) ###
+servicio/*.exe
+servicio/logs/

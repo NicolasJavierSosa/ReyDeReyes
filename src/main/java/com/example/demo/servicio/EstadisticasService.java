@@ -9,9 +9,7 @@ import com.example.demo.enums.EstadoVenta;
 import com.example.demo.modelo.Categoria;
 import com.example.demo.modelo.DetalleVenta;
 import com.example.demo.modelo.Producto;
-import com.example.demo.modelo.Stock;
 import com.example.demo.modelo.Venta;
-import com.example.demo.repositorio.StockRepository;
 import com.example.demo.repositorio.VentaRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,11 +37,11 @@ public class EstadisticasService {
 	private static final DateTimeFormatter LABEL_FORMAT = DateTimeFormatter.ofPattern("dd/MM", Locale.forLanguageTag("es-AR"));
 
 	private final VentaRepository ventaRepository;
-	private final StockRepository stockRepository;
+	private final StockService stockService;
 
-	public EstadisticasService(VentaRepository ventaRepository, StockRepository stockRepository) {
+	public EstadisticasService(VentaRepository ventaRepository, StockService stockService) {
 		this.ventaRepository = ventaRepository;
-		this.stockRepository = stockRepository;
+		this.stockService = stockService;
 	}
 
 	@Transactional(readOnly = true)
@@ -114,12 +113,8 @@ public class EstadisticasService {
 					BigDecimal qty = defaultZero(detalle.getCantidad());
 					items = items.add(qty);
 					BigDecimal linea = defaultZero(detalle.getTotalLinea());
-					BigDecimal costo = BigDecimal.ZERO;
-					Producto producto = detalle.getProducto();
-					if (producto != null) {
-						BigDecimal costoUnit = defaultZero(producto.getPrecioCosto());
-						costo = costoUnit.multiply(qty);
-					}
+					// Costo guardado al momento de la venta, no el costo actual del producto
+					BigDecimal costo = defaultZero(detalle.getCostoUnitario()).multiply(qty);
 					profit = profit.add(linea.subtract(costo));
 				}
 			}
@@ -158,7 +153,7 @@ public class EstadisticasService {
 	}
 
 	private EstadisticasSerieDto buildTopProducts(List<Venta> ventas) {
-		Map<Long, ProductAgg> byProduct = aggregateByProduct(ventas);
+		Map<UUID, ProductAgg> byProduct = aggregateByProduct(ventas);
 		List<ProductAgg> sorted = byProduct.values().stream()
 			.sorted(Comparator.comparing((ProductAgg agg) -> agg.qty).reversed())
 			.limit(5)
@@ -171,19 +166,13 @@ public class EstadisticasService {
 	}
 
 	private EstadisticasSerieDto buildRotacion(List<Venta> ventas) {
-		Map<Long, ProductAgg> byProduct = aggregateByProduct(ventas);
+		Map<UUID, ProductAgg> byProduct = aggregateByProduct(ventas);
 		if (byProduct.isEmpty()) {
 			return new EstadisticasSerieDto(List.of(), List.of());
 		}
 
-		Set<Long> ids = byProduct.keySet();
-		Map<Long, BigDecimal> stockMap = stockRepository.findByProductoIdIn(ids).stream()
-			.filter(Objects::nonNull)
-			.collect(Collectors.toMap(
-				stock -> stock.getProducto().getId(),
-				stock -> defaultZero(stock.getCantidadActual()),
-				(a, b) -> a
-			));
+		Set<UUID> ids = byProduct.keySet();
+		Map<UUID, BigDecimal> stockMap = stockService.stockDe(ids);
 
 		List<ProductAgg> rotationList = new ArrayList<>();
 		for (ProductAgg agg : byProduct.values()) {
@@ -219,10 +208,7 @@ public class EstadisticasService {
 					agg.qty = agg.qty.add(qty);
 					BigDecimal revenue = defaultZero(detalle.getTotalLinea());
 					agg.revenue = agg.revenue.add(revenue);
-					BigDecimal cost = BigDecimal.ZERO;
-					if (producto != null) {
-						cost = defaultZero(producto.getPrecioCosto()).multiply(qty);
-					}
+					BigDecimal cost = defaultZero(detalle.getCostoUnitario()).multiply(qty);
 					agg.cost = agg.cost.add(cost);
 				}
 			}
@@ -248,8 +234,8 @@ public class EstadisticasService {
 			.toList();
 	}
 
-	private Map<Long, ProductAgg> aggregateByProduct(List<Venta> ventas) {
-		Map<Long, ProductAgg> byProduct = new HashMap<>();
+	private Map<UUID, ProductAgg> aggregateByProduct(List<Venta> ventas) {
+		Map<UUID, ProductAgg> byProduct = new HashMap<>();
 		if (ventas != null) {
 			for (Venta venta : ventas) {
 				if (venta == null || venta.getDetalles() == null) continue;
@@ -362,12 +348,12 @@ public class EstadisticasService {
 	}
 
 	private static class ProductAgg {
-		private final Long id;
+		private final UUID id;
 		private final String name;
 		private BigDecimal qty = BigDecimal.ZERO;
 		private BigDecimal rotation = BigDecimal.ZERO;
 
-		private ProductAgg(Long id, String name) {
+		private ProductAgg(UUID id, String name) {
 			this.id = id;
 			this.name = name;
 		}

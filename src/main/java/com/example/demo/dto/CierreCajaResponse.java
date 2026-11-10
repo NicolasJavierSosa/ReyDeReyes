@@ -7,5 +7,7 @@ public record CierreCajaResponse(
 	BigDecimal expectedCash,
 	BigDecimal countedCash,
 	BigDecimal difference,
-	LocalDateTime closedAt
+	LocalDateTime closedAt,
+	boolean synced,
+	String syncMessage
 ) {}

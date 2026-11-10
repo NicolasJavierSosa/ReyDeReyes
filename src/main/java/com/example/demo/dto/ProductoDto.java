@@ -1,14 +1,16 @@
 package com.example.demo.dto;
 
+import java.util.UUID;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 public record ProductoDto(
-	Long id,
+	UUID id,
 	String barcode,
 	String name,
 	String description,
-	Long categoryId,
+	UUID categoryId,
 	String categoryName,
 	String supplierId,
 	String supplierName,
@@ -20,8 +22,8 @@ public record ProductoDto(
 	BigDecimal minStock,
 	Boolean active,
 	Boolean combo,
-	List<Long> comboItems,
-	Long comboGroupCategoryId,
+	List<UUID> comboItems,
+	UUID comboGroupCategoryId,
 	String comboGroupCategoryName,
 	Integer comboGroupQuantity
 ) {}

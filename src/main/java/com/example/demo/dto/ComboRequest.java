@@ -1,5 +1,7 @@
 package com.example.demo.dto;
 
+import java.util.UUID;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,15 +12,15 @@ public record ComboRequest(
 	String barcode,
 	@NotBlank String name,
 	String description,
-	Long categoryId,
+	UUID categoryId,
 	@NotBlank String unit,
 	@NotBlank String type,
 	@DecimalMin("0.0") BigDecimal cost,
 	@NotNull @DecimalMin("0.0") BigDecimal price,
-	@NotNull @DecimalMin("0.0") BigDecimal stock,
+	@DecimalMin("0.0") BigDecimal stock,
 	@DecimalMin("0.0") BigDecimal minStock,
 	Boolean active,
-	List<Long> items,
-	Long groupCategoryId,
+	List<UUID> items,
+	UUID groupCategoryId,
 	Integer groupQuantity
 ) {}
