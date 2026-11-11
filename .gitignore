@@ -33,7 +33,7 @@ build/
 .vscode/
 
 ### Configuracion con claves (nunca al repositorio) ###
-config-local.bat
+###config-local.bat
 
 ### Vue compilado (lo genera mvnw package) ###
 src/main/resources/static/
