@@ -35,7 +35,13 @@ export const useSesion = defineStore('sesion', () => {
   async function ingresar(user: string, clave: string): Promise<boolean> {
     if (esNube) {
       const { error } = await supabase().auth.signInWithPassword({ email: user, password: clave })
-      if (error) return false
+      if (error) {
+        const m = error.message.toLowerCase()
+        if (m.includes('invalid login')) return false
+        if (m.includes('not confirmed')) throw new Error('El usuario no esta confirmado. En Supabase: Authentication > Users > Confirm user.')
+        if (m.includes('api key') || m.includes('apikey')) throw new Error('La clave publica de Supabase (VITE_SUPABASE_ANON_KEY) es incorrecta.')
+        throw new Error(`No se pudo ingresar: ${error.message}`)
+      }
     } else if (!(await auth.login(user, clave))) {
       return false
     }
