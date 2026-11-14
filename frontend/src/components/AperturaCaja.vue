@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { tesoreriaApi } from '@/api/local'
+import { ventaDatos } from '@/datos/venta'
+import { esNube } from '@/modo'
 import { useCaja } from '@/stores/caja'
 import { useAvisos } from '@/stores/avisos'
 
@@ -17,7 +18,7 @@ async function abrir() {
   }
   enviando.value = true
   try {
-    await tesoreriaApi.abrirCaja(monto.value, notas.value)
+    await ventaDatos.abrirCaja(monto.value, notas.value)
     await caja.refrescar()
     avisos.exito('Caja abierta')
   } catch (e) {
@@ -31,7 +32,10 @@ async function abrir() {
 <template>
   <form class="tarjeta p-5 border-amber-300 bg-amber-50/60 max-w-md" @submit.prevent="abrir">
     <h3 class="font-bold text-amber-800 flex items-center gap-2"><i class="fa-solid fa-lock"></i> La caja esta cerrada</h3>
-    <p class="text-sm text-amber-700 mt-1 mb-4">Abrila para empezar a vender. Ingresá el efectivo con el que empieza el día.</p>
+    <p class="text-sm text-amber-700 mt-1 mb-4">
+      <template v-if="esNube">Esta es la caja de la web: es independiente de la caja de la PC del local. Úsala solo cuando el local no pueda vender.</template>
+      <template v-else>Abrila para empezar a vender. Ingresá el efectivo con el que empieza el día.</template>
+    </p>
     <div class="grid grid-cols-2 gap-3">
       <div>
         <label class="etiqueta" for="apertura-monto">Efectivo inicial</label>

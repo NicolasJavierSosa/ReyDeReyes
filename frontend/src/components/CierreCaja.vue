@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import Modal from './Modal.vue'
-import { tesoreriaApi } from '@/api/local'
+import { ventaDatos } from '@/datos/venta'
+import { esNube } from '@/modo'
 import type { CierreCaja, ResumenTesoreria } from '@/api/tipos'
 import { dinero } from '@/utils/formato'
 import { useAvisos } from '@/stores/avisos'
@@ -28,7 +29,7 @@ async function confirmar() {
       .map((d) => ({ denomination: d, quantity: Number(cantidades.value[d]) || 0 }))
       .filter((b) => b.quantity > 0)
     if (!bills.length) bills.push({ denomination: 1, quantity: 0 })
-    resultado.value = await tesoreriaApi.cerrarCaja(bills, notas.value)
+    resultado.value = await ventaDatos.cerrarCaja(bills, notas.value)
     emit('cerrada', resultado.value)
   } catch (e) {
     avisos.error(e)
@@ -68,7 +69,8 @@ async function confirmar() {
           <label class="etiqueta" for="cierre-notas">Observaciones</label>
           <textarea id="cierre-notas" v-model="notas" rows="2" class="campo"></textarea>
         </div>
-        <p class="text-xs text-slate-500"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Al cerrar se suben los datos a la nube.</p>
+        <p v-if="esNube" class="text-xs text-slate-500"><i class="fa-solid fa-cloud-arrow-down mr-1"></i>Esta caja y sus ventas bajan a la PC del local con la próxima sincronización.</p>
+        <p v-else class="text-xs text-slate-500"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Al cerrar se suben los datos a la nube.</p>
       </div>
     </div>
     <div v-else class="space-y-3 text-sm">
@@ -76,7 +78,8 @@ async function confirmar() {
       <div class="flex justify-between"><span>Esperado</span><b>{{ dinero(resultado.expectedCash) }}</b></div>
       <div class="flex justify-between"><span>Contado</span><b>{{ dinero(resultado.countedCash) }}</b></div>
       <div class="flex justify-between"><span>Diferencia</span><b>{{ dinero(resultado.difference) }}</b></div>
-      <p v-if="resultado.synced" class="p-3 rounded-lg bg-emerald-50 text-emerald-700"><i class="fa-solid fa-cloud mr-1"></i>Datos subidos a la nube.</p>
+      <p v-if="esNube" class="p-3 rounded-lg bg-emerald-50 text-emerald-700"><i class="fa-solid fa-cloud mr-1"></i>Caja de la web cerrada. Las ventas bajan al local con la próxima sincronización.</p>
+      <p v-else-if="resultado.synced" class="p-3 rounded-lg bg-emerald-50 text-emerald-700"><i class="fa-solid fa-cloud mr-1"></i>Datos subidos a la nube.</p>
       <p v-else class="p-3 rounded-lg bg-rose-50 text-rose-700 font-medium">
         <i class="fa-solid fa-triangle-exclamation mr-1"></i>No se pudieron subir los datos a la nube.
         {{ resultado.syncMessage }}. Se reintentará automáticamente cuando haya conexión.

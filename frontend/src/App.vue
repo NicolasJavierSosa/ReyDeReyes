@@ -12,6 +12,7 @@ const sesion = useSesion()
 
 const menu = esNube
   ? [
+      { a: '/venta', icono: 'fa-cart-shopping', texto: 'Venta' },
       { a: '/catalogo', icono: 'fa-boxes-stacked', texto: 'Catalogo' },
       { a: '/ventas', icono: 'fa-receipt', texto: 'Ventas' },
       { a: '/cajas', icono: 'fa-vault', texto: 'Cajas' },

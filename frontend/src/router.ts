@@ -17,6 +17,7 @@ const rutasLocal: RouteRecordRaw[] = [
 // Web del duenio: catalogo editable y consultas en solo lectura
 const rutasNube: RouteRecordRaw[] = [
   { path: '/', redirect: '/catalogo' },
+  { path: '/venta', name: 'venta', component: () => import('./views/VentaView.vue'), meta: { titulo: 'Venta (contingencia)' } },
   { path: '/catalogo', name: 'catalogo', component: () => import('./views/InventarioView.vue'), meta: { titulo: 'Catalogo' } },
   { path: '/ventas', name: 'ventas', component: () => import('./views/VentasView.vue'), meta: { titulo: 'Ventas' } },
   { path: '/cajas', name: 'cajas', component: () => import('./views/CajasView.vue'), meta: { titulo: 'Cajas y tesoreria' } },

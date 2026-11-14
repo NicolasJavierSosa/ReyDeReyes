@@ -20,6 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import com.example.demo.dto.AperturaCajaRequest;
 import com.example.demo.dto.CategoriaRequest;
+import com.example.demo.dto.ComboRequest;
 import com.example.demo.dto.ProductoDto;
 import com.example.demo.dto.ProductoRequest;
 import com.example.demo.dto.SyncResultadoDto;
@@ -79,6 +80,7 @@ class SincronizacionTest extends BaseIntegracionTest {
 			         pagos, detalles_venta, ventas, cajas, clientes, productos, proveedores, tipos, categorias,
 			         sync_cambios, sync_conflictos, sync_recibidos cascade
 			""");
+		nube.execute("alter sequence ventas_numero_web_seq restart with 900001");
 	}
 
 	// ------------------------------------------------------------------ auxiliares
@@ -263,5 +265,154 @@ class SincronizacionTest extends BaseIntegracionTest {
 		assertThat(contarNube("ventas")).isEqualTo(3);
 
 		assertThatThrownBy(() -> sync.restaurarDesdeNube()).hasMessageContaining("ya tiene datos");
+	}
+
+	// ------------------------------------------------------------------ venta desde la web
+
+	/** Ejecuta una funcion de la nube como lo hace la web: rol authenticated y una sola transaccion. */
+	private String comoWeb(String sql, Object... args) {
+		nube.execute("begin");
+		try {
+			nube.execute("set local role authenticated");
+			String respuesta = nube.queryForObject(sql, String.class, args);
+			nube.execute("commit");
+			return respuesta;
+		} catch (RuntimeException e) {
+			nube.execute("rollback");
+			throw e;
+		}
+	}
+
+	private void cobrarEnLaWeb(String itemsJson) {
+		comoWeb("select web_cobrar(?::jsonb, 0, 'EFECTIVO', 100000)::text", itemsJson);
+	}
+
+	private BigDecimal stockNube(String barcode) {
+		return nube.queryForObject(
+			"select s.cantidad from v_stock s join productos p on p.id = s.producto_id where p.codigo_barra = ?",
+			BigDecimal.class, barcode);
+	}
+
+	private BigDecimal stockLocalDe(String barcode) {
+		return jdbc.queryForObject(
+			"select s.cantidad from v_stock s join productos p on p.id = s.producto_id where p.codigo_barra = ?",
+			BigDecimal.class, barcode);
+	}
+
+	@Test
+	void ventaHechaEnLaWebBajaAlLocalConSuStockYSuCaja() {
+		producto("A1", "300", "10");
+		sync.sincronizar();
+
+		comoWeb("select web_abrir_caja(1000, null)::text");
+		assertThatThrownBy(() -> comoWeb("select web_abrir_caja(1, null)::text")).hasMessageContaining("Ya hay una caja abierta");
+		cobrarEnLaWeb("[{\"barcode\":\"A1\",\"quantity\":2}]");
+
+		// En la nube: ticket del rango web, stock descontado, todo marcado como PROD
+		assertThat(nube.queryForObject("select numero from ventas", Long.class)).isEqualTo(900001);
+		assertThat(nube.queryForObject("select total from ventas", BigDecimal.class)).isEqualByComparingTo("600");
+		assertThat(nube.queryForObject("select origen from ventas", String.class)).isEqualTo("PROD");
+		assertThat(nube.queryForObject("select origen from cajas", String.class)).isEqualTo("PROD");
+		assertThat(stockNube("A1")).isEqualByComparingTo("8");
+		assertThat(contarNube("movimientos_tesoreria")).isEqualTo(2);
+
+		// Baja al local: la venta, su stock y la caja de la web
+		SyncResultadoDto resultado = sync.sincronizar();
+		assertThat(resultado.ok()).as(resultado.message()).isTrue();
+		assertThat(jdbc.queryForObject("select numero from ventas", Long.class)).isEqualTo(900001);
+		assertThat(stockLocalDe("A1")).isEqualByComparingTo("8");
+		assertThat(sync.pendientes()).isZero();
+		// La caja de la web NO es la caja del local
+		assertThat(tesoreria.obtenerEstadoCaja().open()).isFalse();
+		assertThatThrownBy(() -> venderUno("A1")).hasMessageContaining("No hay caja abierta");
+
+		// El local abre su propia caja y vende: conviven, y el ticket local sigue su numeracion
+		tesoreria.abrirCaja(new AperturaCajaRequest(new BigDecimal("500"), null));
+		venderUno("A1");
+		assertThat(jdbc.queryForObject("select max(numero) from ventas where numero < 900000", Long.class)).isEqualTo(1);
+		assertThat(sync.sincronizar().ok()).isTrue();
+		assertThat(contarNube("ventas")).isEqualTo(2);
+		assertThat(stockNube("A1")).isEqualByComparingTo("7");
+		assertThat(nube.queryForObject("select count(*) from cajas where estado = 'ABIERTA'", Long.class)).isEqualTo(2);
+
+		// El local no puede anular una venta hecha en la web
+		UUID ventaWeb = jdbc.queryForObject("select id from ventas where numero = 900001", UUID.class);
+		assertThatThrownBy(() -> ventas.anularVenta(ventaWeb)).hasMessageContaining("desde la web");
+
+		// Cierre de la caja de la web: esperado = base 1000 + venta 600
+		comoWeb("select web_cerrar_caja(?::jsonb, 'cierre de prueba')::text",
+			"[{\"denomination\":1000,\"quantity\":1},{\"denomination\":500,\"quantity\":1}]");
+		assertThat(nube.queryForObject("select efectivo_esperado from cajas where origen = 'PROD'", BigDecimal.class)).isEqualByComparingTo("1600");
+		assertThat(nube.queryForObject("select diferencia from cajas where origen = 'PROD'", BigDecimal.class)).isEqualByComparingTo("-100");
+		assertThat(nube.queryForObject("select detalle_cierre from cajas where origen = 'PROD'", String.class))
+			.isEqualTo("{\"billetes\":{\"1000\":1,\"500\":1}}");
+		assertThat(sync.sincronizar().ok()).isTrue();
+		assertThat(jdbc.queryForObject("select estado from cajas where origen = 'PROD'", String.class)).isEqualTo("CERRADA");
+		// La caja del local sigue abierta
+		assertThat(tesoreria.obtenerEstadoCaja().open()).isTrue();
+	}
+
+	@Test
+	void laWebValidaCajaStockYMetodoDePago() {
+		producto("A1", "300", "1");
+		sync.sincronizar();
+
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"A1\",\"quantity\":1}]"))
+			.hasMessageContaining("No hay caja abierta en la web");
+		comoWeb("select web_abrir_caja(0, null)::text");
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"A1\",\"quantity\":2}]"))
+			.hasMessageContaining("Stock insuficiente para Producto A1. Stock actual: 1");
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"ZZ\",\"quantity\":1}]"))
+			.hasMessageContaining("Producto no encontrado: ZZ");
+		assertThatThrownBy(() -> comoWeb("select web_cobrar(?::jsonb, 0, 'PAYPAL', null)::text", "[{\"barcode\":\"A1\",\"quantity\":1}]"))
+			.hasMessageContaining("Metodo de pago invalido");
+		assertThatThrownBy(() -> comoWeb("select web_cobrar(?::jsonb, 0, 'EFECTIVO', 10)::text", "[{\"barcode\":\"A1\",\"quantity\":1}]"))
+			.hasMessageContaining("monto entregado es menor");
+		assertThatThrownBy(() -> comoWeb("select web_cobrar(?::jsonb, 400, 'EFECTIVO', 1000)::text", "[{\"barcode\":\"A1\",\"quantity\":1}]"))
+			.hasMessageContaining("descuento no puede superar");
+		// Nada de lo anterior dejo rastros
+		assertThat(contarNube("ventas")).isZero();
+		assertThat(stockNube("A1")).isEqualByComparingTo("1");
+
+		// Con descuento y transferencia (no afecta el efectivo de la caja)
+		comoWeb("select web_cobrar(?::jsonb, 50, 'TRANSFERENCIA', null)::text", "[{\"barcode\":\"A1\",\"quantity\":1}]");
+		assertThat(nube.queryForObject("select total from ventas", BigDecimal.class)).isEqualByComparingTo("250");
+		assertThat(nube.queryForObject("select sum(monto) from movimientos_tesoreria where afecta_caja", BigDecimal.class)).isNull();
+		assertThat(stockNube("A1")).isEqualByComparingTo("0");
+	}
+
+	@Test
+	void laWebVendeCombosComoElLocal() {
+		UUID bebidas = categorias.crear(new CategoriaRequest("Bebidas", null)).getId();
+		ProductoDto pan = producto("P1", "100", "5");
+		ProductoDto queso = producto("Q1", "400", "3");
+		productos.crearCombo(new ComboRequest("C1", "Sandwich", null, null, "UN", "Combo",
+			BigDecimal.ZERO, new BigDecimal("450"), null, null, true, List.of(pan.id(), queso.id()), null, null));
+		productos.crear(new ProductoRequest("B1", "Cola", null, bebidas, null, "UN", "General",
+			new BigDecimal("100"), new BigDecimal("300"), new BigDecimal("1"), null, BigDecimal.ZERO, true));
+		productos.crear(new ProductoRequest("B2", "Lima", null, bebidas, null, "UN", "General",
+			new BigDecimal("100"), new BigDecimal("300"), new BigDecimal("4"), null, BigDecimal.ZERO, true));
+		productos.crearCombo(new ComboRequest("C2", "3 bebidas", null, null, "UN", "Combo",
+			BigDecimal.ZERO, new BigDecimal("800"), null, null, true, null, bebidas, 3));
+		assertThat(sync.sincronizar().ok()).isTrue();
+		comoWeb("select web_abrir_caja(0, null)::text");
+
+		// Combo fijo: descuenta sus componentes y toma de ellos el costo
+		cobrarEnLaWeb("[{\"barcode\":\"C1\",\"quantity\":2}]");
+		assertThat(stockNube("P1")).isEqualByComparingTo("3");
+		assertThat(stockNube("Q1")).isEqualByComparingTo("1");
+		assertThat(nube.queryForObject("select costo_unitario from detalles_venta", BigDecimal.class)).isEqualByComparingTo("20");
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"C1\",\"quantity\":1.5}]")).hasMessageContaining("unidad entera");
+
+		// Combo de grupo sin eleccion: toma primero del que mas stock tiene
+		cobrarEnLaWeb("[{\"barcode\":\"C2\",\"quantity\":1}]");
+		assertThat(stockNube("B2")).isEqualByComparingTo("1");
+		assertThat(stockNube("B1")).isEqualByComparingTo("1");
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"C2\",\"quantity\":1}]")).hasMessageContaining("sin stock");
+
+		// Eligiendo a mano: tiene que sumar las 3 unidades del combo
+		assertThatThrownBy(() -> cobrarEnLaWeb("[{\"barcode\":\"C2\",\"quantity\":1,\"components\":"
+			+ "[{\"barcode\":\"B1\",\"quantity\":1},{\"barcode\":\"B2\",\"quantity\":1}]}]"))
+			.hasMessageContaining("lleva 3 unidades y se eligieron 2");
 	}
 }

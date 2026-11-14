@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { tesoreriaApi } from '@/api/local'
+import { ventaDatos } from '@/datos/venta'
 import type { EstadoCaja } from '@/api/tipos'
 
 export const useCaja = defineStore('caja', () => {
@@ -9,7 +9,7 @@ export const useCaja = defineStore('caja', () => {
 
   async function refrescar() {
     try {
-      estado.value = await tesoreriaApi.estadoCaja()
+      estado.value = await ventaDatos.estadoCaja()
     } finally {
       cargada.value = true
     }

@@ -3,8 +3,12 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Modal from '@/components/Modal.vue'
 import AperturaCaja from '@/components/AperturaCaja.vue'
 import DetalleVenta from '@/components/DetalleVenta.vue'
-import { categoriasApi, metodosPagoApi, productosApi, ventasApi } from '@/api/local'
-import type { MetodoPago, Producto, ProductoVenta, Uuid, VentaCheckoutRespuesta } from '@/api/tipos'
+import { productosApi } from '@/api/local'
+import { catalogo } from '@/datos/catalogo'
+import { ventaDatos } from '@/datos/venta'
+import { esNube } from '@/modo'
+import CierreCaja from '@/components/CierreCaja.vue'
+import type { MetodoPago, Producto, ProductoVenta, ResumenTesoreria, Uuid, VentaCheckoutRespuesta } from '@/api/tipos'
 import { calcularDescuentoCombos, definirCombos } from '@/composables/combos'
 import { useCaja } from '@/stores/caja'
 import { useAvisos } from '@/stores/avisos'
@@ -39,20 +43,38 @@ const resultados = ref<ProductoVenta[]>([])
 const inputCodigo = ref<HTMLInputElement | null>(null)
 
 const ultimaVenta = ref<VentaCheckoutRespuesta | null>(null)
+
+// Cierre de la caja de la web (en el local la caja se cierra desde Tesoreria)
+const cerrandoCaja = ref(false)
+const resumenCaja = ref<ResumenTesoreria | null>(null)
+
+async function abrirCierre() {
+  try {
+    resumenCaja.value = await ventaDatos.resumenCaja()
+    cerrandoCaja.value = true
+  } catch (e) {
+    avisos.error(e)
+  }
+}
+
+async function cajaCerrada() {
+  carrito.value = []
+  await caja.refrescar()
+}
 const verVentaId = ref<Uuid | null>(null)
 
 // ------------------------------------------------------------------ carga
 
 async function cargarProductos() {
   try {
-    productos.value = await productosApi.listar()
+    productos.value = await catalogo.productos()
   } catch (e) {
     avisos.error(e)
   }
 }
 
 onMounted(async () => {
-  await Promise.all([caja.refrescar(), cargarProductos(), metodosPagoApi.listar(true).then((m) => (metodos.value = m)).catch(avisos.error)])
+  await Promise.all([caja.refrescar(), cargarProductos(), ventaDatos.metodosPago().then((m) => (metodos.value = m)).catch(avisos.error)])
   enfocarCodigo()
   window.addEventListener('keydown', teclaGlobal)
 })
@@ -93,12 +115,13 @@ async function agregarPorCodigo() {
   if (!caja.estado.open) return avisos.mostrar('Abrí la caja para vender', 'error')
   const qty = Number(cantidadIngreso.value) > 0 ? Number(cantidadIngreso.value) : 1
   try {
-    const p = await productosApi.porCodigo(texto)
+    const p = await ventaDatos.porCodigo(texto)
     agregar(p, qty)
     codigo.value = ''
     cantidadIngreso.value = 1
-  } catch {
-    avisos.mostrar(`Producto no encontrado o inactivo: ${texto}`, 'error')
+  } catch (e) {
+    const detalle = e instanceof Error && !/no encontrado/i.test(e.message) ? e.message : ''
+    avisos.mostrar(detalle || `Producto no encontrado o inactivo: ${texto}`, 'error')
     inputCodigo.value?.select()
     return
   }
@@ -114,7 +137,7 @@ watch(busqueda, (texto) => {
   }
   temporizadorBusqueda = window.setTimeout(async () => {
     try {
-      resultados.value = await productosApi.buscar(texto.trim())
+      resultados.value = await ventaDatos.buscar(texto.trim())
     } catch {
       resultados.value = []
     }
@@ -176,17 +199,23 @@ function abrirRubro(r: Rubro) {
 }
 
 async function asegurarCategoria(nombre: string) {
-  const categorias = await categoriasApi.listar('all')
+  const categorias = await catalogo.categorias()
   const existente = categorias.find((c) => normalizar(c.nombre).includes(normalizar(nombre).slice(0, 6)))
   if (existente) {
-    if (!existente.activa) await categoriasApi.cambiarEstado(existente.id, true)
+    if (!existente.activa) await catalogo.estadoCategoria(existente.id, true)
     return existente
   }
-  return categoriasApi.crear(nombre)
+  await catalogo.crearCategoria(nombre)
+  const nueva = (await catalogo.categorias()).find((c) => normalizar(c.nombre) === normalizar(nombre))
+  if (!nueva) throw new Error('No se pudo crear la categoria')
+  return nueva
 }
 
 /** Productos "a granel": se venden por monto, sin control de stock real. */
 async function crearProductoDelRubro(nombre: string, precio: number) {
+  if (esNube) {
+    throw new Error('Los productos por monto nuevos se registran en el local (la web no maneja su stock). Los que ya existen se pueden vender desde aca.')
+  }
   const r = rubros[rubro.value!]
   const categoria = await asegurarCategoria(r.categoria)
   const creado = await productosApi.crear({
@@ -267,7 +296,7 @@ async function confirmarCobro() {
   }
   enviando.value = true
   try {
-    const respuesta = await ventasApi.cobrar({
+    const respuesta = await ventaDatos.cobrar({
       items: carrito.value.map((l) => ({ barcode: l.codigo, quantity: l.qtyVenta ?? l.qty })),
       discount: descuento.value,
       payment: { method: metodoElegido.value, amountReceived: efectivo ? redondearDinero(Number(entregado.value)) : null },
@@ -277,7 +306,8 @@ async function confirmarCobro() {
     cobrando.value = false
     avisos.exito(`Venta registrada. Ticket #${respuesta.ticket}` + (respuesta.change > 0 ? `\nVuelto: ${dinero(respuesta.change)}` : ''))
     cargarProductos()
-    sync.refrescar()
+    if (!esNube) sync.refrescar()
+    caja.refrescar()
     enfocarCodigo()
   } catch (e) {
     errorCobro.value = e instanceof Error ? e.message : String(e)
@@ -304,6 +334,15 @@ function teclaGlobal(e: KeyboardEvent) {
 
 <template>
   <div class="p-4 lg:p-6 max-w-7xl mx-auto">
+    <div v-if="esNube" class="mb-4 p-3 rounded-lg bg-sky-50 border border-sky-200 text-sky-800 text-sm flex flex-wrap items-center gap-3">
+      <span class="flex-1 min-w-60">
+        <i class="fa-solid fa-cloud mr-1"></i>
+        <b>Venta desde la web (contingencia).</b> Tiene su propia caja; las ventas bajan solas a la PC del local.
+        <span v-if="caja.estado.open">Caja abierta con {{ dinero(caja.estado.baseAmount) }} de base.</span>
+      </span>
+      <button v-if="caja.estado.open" class="btn-secundario" @click="abrirCierre"><i class="fa-solid fa-lock"></i> Cerrar caja</button>
+    </div>
+
     <div v-if="caja.cargada && !caja.estado.open" class="mb-4">
       <AperturaCaja />
     </div>
@@ -417,7 +456,7 @@ function teclaGlobal(e: KeyboardEvent) {
             <span class="font-bold">{{ dinero(ultimaVenta.total) }}</span>
           </div>
           <div v-if="ultimaVenta.change > 0" class="text-slate-500">Vuelto: {{ dinero(ultimaVenta.change) }}</div>
-          <button class="btn-secundario w-full mt-3" @click="verVentaId = ultimaVenta.saleId"><i class="fa-solid fa-receipt"></i> Ver / anular</button>
+          <button class="btn-secundario w-full mt-3" @click="verVentaId = ultimaVenta.saleId"><i class="fa-solid fa-receipt"></i> {{ esNube ? "Ver detalle" : "Ver / anular" }}</button>
         </div>
       </aside>
     </div>
@@ -488,6 +527,8 @@ function teclaGlobal(e: KeyboardEvent) {
         <button class="btn-primario" form="form-rubro"><i class="fa-solid fa-plus"></i> Agregar</button>
       </template>
     </Modal>
+
+    <CierreCaja v-if="cerrandoCaja" :resumen="resumenCaja" @cerrar="cerrandoCaja = false" @cerrada="cajaCerrada" />
 
     <DetalleVenta v-if="verVentaId" :venta-id="verVentaId" @cerrar="verVentaId = null" @anulada="ultimaVenta = null; cargarProductos()" />
   </div>

@@ -168,7 +168,7 @@ public class SyncService {
 				}
 			}
 		}
-		jdbc.queryForList("select setval('ventas_numero_seq', greatest(coalesce((select max(numero) from ventas), 0), 1), (select count(*) > 0 from ventas))");
+		jdbc.queryForList("select setval('ventas_numero_seq', greatest(coalesce((select max(numero) from ventas where numero < 900000), 0), 1), (select count(*) > 0 from ventas where numero < 900000))");
 		jdbc.update("delete from sync_cambios");
 		guardar(CLAVE_CURSOR, String.valueOf(cursor == null ? 0 : cursor));
 		guardar(CLAVE_ULTIMO_EXITO, OffsetDateTime.now().toString());

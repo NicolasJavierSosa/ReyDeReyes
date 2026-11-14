@@ -61,20 +61,20 @@ public class TesoreriaService {
 
 	@Transactional(readOnly = true)
 	public Caja cajaAbierta() {
-		return cajaRepository.findFirstByEstado(EstadoCaja.ABIERTA)
+		return cajaRepository.cajaAbiertaLocal()
 			.orElseThrow(() -> error("No hay caja abierta. Abra la caja antes de continuar."));
 	}
 
 	@Transactional(readOnly = true)
 	public EstadoCajaDto obtenerEstadoCaja() {
-		return cajaRepository.findFirstByEstado(EstadoCaja.ABIERTA)
+		return cajaRepository.cajaAbiertaLocal()
 			.map(caja -> new EstadoCajaDto(true, caja.getId(), caja.getFechaApertura(), cero(caja.getMontoApertura())))
 			.orElseGet(() -> new EstadoCajaDto(false, null, null, BigDecimal.ZERO));
 	}
 
 	@Transactional
 	public AperturaCajaResponse abrirCaja(AperturaCajaRequest request) {
-		if (cajaRepository.findFirstByEstado(EstadoCaja.ABIERTA).isPresent()) {
+		if (cajaRepository.cajaAbiertaLocal().isPresent()) {
 			throw error("Ya hay una caja abierta");
 		}
 		BigDecimal amount = dinero(request.amount());
@@ -152,7 +152,7 @@ public class TesoreriaService {
 
 	@Transactional(readOnly = true)
 	public List<MovimientoTesoreriaDto> listarMovimientos() {
-		return cajaRepository.findFirstByEstado(EstadoCaja.ABIERTA)
+		return cajaRepository.cajaAbiertaLocal()
 			.map(caja -> movimientoTesoreriaRepository.findAllByCajaIdOrderByFechaHoraDescIdDesc(caja.getId()).stream()
 				.map(this::toDto)
 				.toList())
@@ -183,7 +183,7 @@ public class TesoreriaService {
 
 	@Transactional(readOnly = true)
 	public TesoreriaResumenDto obtenerResumen() {
-		Totales totales = cajaRepository.findFirstByEstado(EstadoCaja.ABIERTA)
+		Totales totales = cajaRepository.cajaAbiertaLocal()
 			.map(this::calcularTotales)
 			.orElse(new Totales(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
 		return new TesoreriaResumenDto(

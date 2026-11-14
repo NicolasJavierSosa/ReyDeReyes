@@ -15,7 +15,13 @@ import com.example.demo.modelo.Caja;
 
 public interface CajaRepository extends JpaRepository<Caja, UUID> {
 
-	Optional<Caja> findFirstByEstado(EstadoCaja estado);
+	/** La caja abierta de un origen: LOCAL (la PC del local) o PROD (la web). Hay una por origen. */
+	Optional<Caja> findFirstByEstadoAndOrigen(EstadoCaja estado, String origen);
+
+	/** La caja abierta del local; la de la web nunca se maneja desde aca. */
+	default Optional<Caja> cajaAbiertaLocal() {
+		return findFirstByEstadoAndOrigen(EstadoCaja.ABIERTA, "LOCAL");
+	}
 
 	@Query("""
 		select c from Caja c

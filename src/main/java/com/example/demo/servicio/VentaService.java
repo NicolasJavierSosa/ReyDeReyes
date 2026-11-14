@@ -274,6 +274,9 @@ public class VentaService {
 		if (venta.getEstado() == EstadoVenta.ANULADA) {
 			return;
 		}
+		if (!"LOCAL".equals(venta.getCaja().getOrigen())) {
+			throw error("Esta venta se hizo desde la web y no se puede anular desde el local");
+		}
 		if (venta.getCaja().getEstado() != EstadoCaja.ABIERTA) {
 			throw error("La venta pertenece a una caja cerrada y ya no se puede anular");
 		}

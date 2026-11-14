@@ -106,13 +106,32 @@ Qué ve y qué edita la web (reglas RLS para usuarios autenticados):
 | Datos | Permiso |
 | --- | --- |
 | Productos, combos, categorías, unidades, tipos, precios | Leer, crear y editar |
-| Ventas, detalles, pagos, cajas, movimientos de tesorería, métodos de pago | Solo leer |
+| Ventas, detalles, pagos, cajas, movimientos de tesorería, métodos de pago | Solo leer (las ventas de la web se hacen con las funciones de contingencia) |
 | Movimientos de stock y vista `v_stock` | Solo leer |
 | Usuarios, configuración, tablas de sincronización internas | Sin acceso |
 
 Los cambios de catálogo llegan a la PC del local en la próxima sincronización. Si el local y
 la web editan el mismo producto a la vez, gana el último y el otro queda en
 la pantalla de **Conflictos** (ícono en la barra superior) para revisarlo.
+
+### Vender desde la web (contingencia)
+
+Si la PC del local no está disponible, el dueño puede vender desde la web (menú **Venta**):
+
+- La web tiene **su propia caja**, independiente de la del local: se abre con su efectivo
+  inicial y se cierra con su propio arqueo (botón **Cerrar caja** en la pantalla de venta).
+- Cobrar, controlar stock, aplicar combos y registrar el pago se hace en una sola operación
+  en Supabase: o queda todo guardado o no queda nada.
+- Los tickets de la web empiezan en **900001**, para no pisarse con los del local.
+- Las ventas y la caja de la web **bajan solas a la PC del local** en la próxima
+  sincronización y descuentan el stock allá. Desde el local no se pueden anular.
+- Cada lado controla el stock con lo que ve. Si el local y la web venden lo mismo a la vez,
+  el stock puede quedar en negativo y hay que ajustarlo a mano.
+- Los productos "por monto" (fiambrería, carnicería, verdulería) se venden desde la web
+  solo si ya existen; los nuevos se crean en el local.
+
+Al actualizar a esta versión hay que volver a ejecutar `--migrar-nube` (aplica las
+funciones nuevas en Supabase) y publicar de nuevo en Vercel.
 
 Vercel Hobby es para uso no comercial según sus condiciones; si lo objetan, el mismo
 `frontend` se publica igual en Cloudflare Pages o Netlify.
